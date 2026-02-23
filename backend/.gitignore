@@ -1,0 +1,18 @@
+.env
+node_modules
+.firebase
+dist
+coverage
+*.log
+*.tmp
+
+# Ignore IDE specific files
+.vscode/    
+.idea/
+# Ignore OS specific files
+.DS_Store
+Thumbs.db
+# Ignore build artifacts
+build/
+# Ignore test coverage reports
+coverage/
