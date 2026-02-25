@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "bold",
-    color: Colors.secondary,
+    color: Colors.textSecondary,
   },
   card: {
     backgroundColor: "white",

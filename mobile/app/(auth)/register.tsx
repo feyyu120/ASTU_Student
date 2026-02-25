@@ -14,8 +14,9 @@ import * as SecureStore from "expo-secure-store";
 import styles from "../styles/login.style";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TypeAnimation } from "react-native-type-animation";
+import COLORS from "../constant/color";
 
-const API_URL = "http://localhost:5000"; // Change to production URL later
+const API_URL = "http://localhost:5000"; 
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -70,7 +71,7 @@ export default function Register() {
           name,
           email,
           password,
-          // role: "student" → backend defaults to student
+          
         }),
       });
 
@@ -132,7 +133,7 @@ export default function Register() {
                 style={{
                   fontSize: 20,
                   fontWeight: "bold",
-                  color: "#16bd93",
+                  color: COLORS.secondary,
                   textAlign: "center",
                   marginBottom: 5,
                 }}
@@ -184,7 +185,7 @@ export default function Register() {
                 onPress={handleRegister}
                 loading={isLoading}
                 disabled={isLoading}
-                buttonColor="#16bd93"
+                buttonColor= {COLORS.secondary}
                 textColor="white"
                 style={{ marginTop: 20,}}
                 contentStyle={{ paddingVertical: 6 }}
@@ -198,7 +199,7 @@ export default function Register() {
                 </Text>
                 <Link href="/login" asChild>
                   <TouchableOpacity>
-                    <Text style={{ color: "#16bd93", fontWeight: "bold", fontSize: 15 }}>
+                    <Text style={{ color: COLORS.link, fontWeight: "bold", fontSize: 15 }}>
                       Login
                     </Text>
                   </TouchableOpacity>
@@ -218,7 +219,7 @@ export default function Register() {
           label: "OK",
           onPress: () => setErrorMessage(""),
         }}
-        style={{ backgroundColor: "#d32f2f" }}
+        style={{ backgroundColor: COLORS.error }}
       >
         {errorMessage}
       </Snackbar>
@@ -228,7 +229,7 @@ export default function Register() {
         visible={!!successMessage}
         onDismiss={() => setSuccessMessage("")}
         duration={2500}
-        style={{ backgroundColor: "#16bd93" }}
+        style={{ backgroundColor: COLORS.success }}
       >
         {successMessage}
       </Snackbar>

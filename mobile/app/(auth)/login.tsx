@@ -14,7 +14,7 @@ import * as SecureStore from "expo-secure-store";
 import styles from "../styles/login.style";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TypeAnimation } from "react-native-type-animation";
-
+import COLORS from "../constant/color";
 const API_URL = "http://localhost:5000"; // Change to your real backend URL later
 
 export default function Login() {
@@ -119,7 +119,7 @@ export default function Login() {
                 cursor={false}
                 style={{
                   fontSize: 26,
-                  color: "#16bd93",
+                  color: COLORS.secondary,
                   fontWeight: "bold",
                   textAlign: "center",
                   marginBottom: 32,
@@ -161,7 +161,7 @@ export default function Login() {
                 onPress={handleLogin}
                 loading={isLoading}
                 disabled={isLoading}
-                buttonColor="#16bd93"
+                buttonColor={COLORS.secondary}
                 textColor="white"
                 style={{ marginTop: 20 }}
                 contentStyle={{ paddingVertical: 6 }}
@@ -175,7 +175,7 @@ export default function Login() {
                 </Text>
                 <Link href="/register" asChild>
                   <TouchableOpacity>
-                    <Text style={{ color: "#16bd93", fontWeight: "bold", fontSize: 15 }}>
+                    <Text style={{ color: COLORS.link, fontWeight: "bold", fontSize: 15 }}>
                       Sign up
                     </Text>
                   </TouchableOpacity>
@@ -195,7 +195,7 @@ export default function Login() {
           label: "OK",
           onPress: () => setErrorMessage(""),
         }}
-        style={{ backgroundColor: "#d32f2f" }}
+        style={{ backgroundColor: COLORS.error }}
       >
         {errorMessage}
       </Snackbar>
@@ -205,7 +205,7 @@ export default function Login() {
         visible={!!successMessage}
         onDismiss={() => setSuccessMessage("")}
         duration={1800}
-        style={{ backgroundColor: "#16bd93" }}
+        style={{ backgroundColor: COLORS.success }}
       >
         {successMessage}
       </Snackbar>

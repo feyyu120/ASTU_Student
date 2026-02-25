@@ -12,7 +12,7 @@ const COLORS = {
   background: "#f8f9fa",        // Light gray - main screen background
   surface: "#ffffff",           // White cards, forms, headers
   surfaceDark: "#e8ecef",       // Slightly darker surface for contrast
-
+  link: "#007bff",              // Blue for links and interactive text
   // Text colors
   textPrimary: "#333333",       // Main text (almost black)
   textSecondary: "#555555",     // Subtext, labels

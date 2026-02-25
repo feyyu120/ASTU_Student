@@ -16,7 +16,7 @@ import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import styles from "../styles/home.style";
-import Colors from "../constant/color"; // Your colors file
+import Colors from "../constant/color"; 
 
 // Use your computer's real IP (not localhost)
 const API_BASE = "http://localhost:5000"; // ← CHANGE THIS
@@ -47,7 +47,7 @@ export default function Home() {
   try {
     let url = `${API_BASE}/api/items/search`;
     if (query.trim()) {
-      url += `?q=${encodeURIComponent(query.trim())}`; // ← single q param
+      url += `?q=${encodeURIComponent(query.trim())}`; 
     }
 
     const token = await SecureStore.getItemAsync("authToken");
@@ -61,7 +61,7 @@ export default function Home() {
     }
 
     const data = await response.json();
-    console.log("Fetched items:", data); // Debug
+    console.log("Fetched items:", data); 
     setItems(data);
   } catch (error) {
     console.error("Fetch error:", error);
@@ -163,7 +163,7 @@ export default function Home() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-        {/* Header */}
+      
         <View style={styles.header}>
           <Text style={styles.title}>Lost Materials</Text>
 
@@ -178,7 +178,7 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Search Bar */}
+        
         {showSearch && (
           <View style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "#fff" }}>
             <TextInput
@@ -196,7 +196,7 @@ export default function Home() {
               <Button
                 mode="text"
                 onPress={handleSearch}
-                textColor={Colors.primary}
+                textColor={Colors.secondary}
                 style={{ marginRight: 12 }}
               >
                 Search
@@ -216,7 +216,7 @@ export default function Home() {
           </View>
         )}
 
-        {/* Pull-to-Refresh List */}
+        
         <FlatList
           data={items}
           keyExtractor={(item) => item._id || String(Math.random())}
@@ -248,7 +248,7 @@ export default function Home() {
         )}
       </SafeAreaView>
 
-      {/* Snackbar */}
+    
       <Snackbar
         visible={!!errorMessage}
         onDismiss={() => setErrorMessage("")}
