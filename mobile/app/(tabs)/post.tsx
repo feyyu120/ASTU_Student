@@ -15,7 +15,8 @@ import { Button, TextInput, Snackbar } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
-import styles from "../styles/home.style"; // Reuse or create new if needed
+import styles from "../styles/home.style"; 
+import Colors from "../constant/color"
 
 const API_URL = "http://localhost:5000"; // Change to real URL later
 
@@ -46,7 +47,7 @@ export default function Post() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.5,
     });
 
     if (!result.canceled) {
@@ -79,7 +80,7 @@ export default function Post() {
       formData.append("category", category);
       formData.append("location", location);
 
-      // Add image if selected
+      
       if (image) {
         const filename = image.split("/").pop();
         const fileType = filename?.split(".").pop();
@@ -109,10 +110,10 @@ export default function Post() {
 
       setSuccessMessage("Item posted successfully!");
       setTimeout(() => {
-        router.back(); // or router.replace("/(tabs)/home")
+        router.back(); 
       }, 1800);
 
-      // Clear form
+   
       setDescription("");
       setCategory("");
       setLocation("");
@@ -135,12 +136,12 @@ export default function Post() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={{ padding: 20 }}>
+        <ScrollView contentContainerStyle={{ padding: 10 }}>
           <Text
             style={{
               fontSize: 26,
               fontWeight: "bold",
-              color: "#16bd93",
+              color: "#296d5c",
               textAlign: "center",
               marginBottom: 24,
             }}
@@ -148,13 +149,13 @@ export default function Post() {
             Report {type === "lost" ? "Lost" : "Found"} Item
           </Text>
 
-          {/* Toggle Lost / Found */}
+         
           <View style={{ flexDirection: "row", justifyContent: "center", marginBottom: 24 }}>
             <Button
               mode={type === "lost" ? "contained" : "outlined"}
               onPress={() => setType("lost")}
-              buttonColor={type === "lost" ? "#16bd93" : undefined}
-              textColor={type === "lost" ? "white" : "#16bd93"}
+              buttonColor={type === "lost" ? Colors.secondary : undefined}
+              textColor={type === "lost" ? "white" : Colors.textSecondary}
               style={{ borderRadius: 12, marginRight: 12 }}
             >
               Lost
@@ -162,15 +163,15 @@ export default function Post() {
             <Button
               mode={type === "found" ? "contained" : "outlined"}
               onPress={() => setType("found")}
-              buttonColor={type === "found" ? "#16bd93" : undefined}
-              textColor={type === "found" ? "white" : "#16bd93"}
+              buttonColor={type === "found" ? Colors.secondary : undefined}
+              textColor={type === "found" ? "white" : Colors.textSecondary}
               style={{ borderRadius: 12 }}
             >
               Found
             </Button>
           </View>
 
-          {/* Form Fields */}
+         
           <TextInput
             label="Description"
             value={description}
@@ -183,7 +184,7 @@ export default function Post() {
           />
 
           <TextInput
-            label="Category (e.g. ID Card, Laptop, Book)"
+            label="Category Ex. ID"
             value={category}
             onChangeText={setCategory}
             mode="outlined"
@@ -192,7 +193,7 @@ export default function Post() {
           />
 
           <TextInput
-            label="Location (e.g. Library, Cafeteria)"
+            label="Location Ex. Library"
             value={location}
             onChangeText={setLocation}
             mode="outlined"
@@ -200,12 +201,12 @@ export default function Post() {
             style={{ backgroundColor: "white", marginBottom: 24 }}
           />
 
-          {/* Image Upload */}
+      
           <TouchableOpacity
             onPress={pickImage}
             style={{
               borderWidth: 2,
-              borderColor: "#16bd93",
+              borderColor: Colors.secondary,
               borderStyle: "dashed",
               borderRadius: 12,
               padding: 16,
@@ -221,24 +222,23 @@ export default function Post() {
               />
             ) : (
               <>
-                <Ionicons name="image-outline" size={48} color="#16bd93" />
-                <Text style={{ color: "#16bd93", marginTop: 8 }}>
+                <Ionicons name="image-outline" size={48} color={Colors.secondary} />
+                <Text style={{ color: Colors.secondary, marginTop: 8 }}>
                   Tap to upload image
                 </Text>
               </>
             )}
           </TouchableOpacity>
 
-          {/* Submit Button */}
+        
           <Button
             mode="contained"
             onPress={handleSubmit}
             loading={isLoading}
             disabled={isLoading}
-            buttonColor="#16bd93"
+            buttonColor={Colors.secondary}
             textColor="white"
-            style={{ borderRadius: 12, paddingVertical: 4 }}
-            contentStyle={{ paddingVertical: 8 }}
+            style={{  paddingVertical: 4 }}
           >
             {isLoading ? "Posting..." : "Submit Report"}
           </Button>
@@ -246,7 +246,7 @@ export default function Post() {
           <Button
             mode="text"
             onPress={() => router.back()}
-            textColor="#757575"
+            textColor={Colors.textSecondary}
             style={{ marginTop: 16 }}
           >
             Cancel
@@ -254,17 +254,17 @@ export default function Post() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Success Snackbar */}
+    
       <Snackbar
         visible={!!successMessage}
         onDismiss={() => setSuccessMessage("")}
         duration={2500}
-        style={{ backgroundColor: "#16bd93" }}
+        style={{ backgroundColor: Colors.success }}
       >
         {successMessage}
       </Snackbar>
 
-      {/* Error Snackbar */}
+     
       <Snackbar
         visible={!!errorMessage}
         onDismiss={() => setErrorMessage("")}
@@ -273,7 +273,7 @@ export default function Post() {
           label: "OK",
           onPress: () => setErrorMessage(""),
         }}
-        style={{ backgroundColor: "#d32f2f" }}
+        style={{ backgroundColor: Colors.error }}
       >
         {errorMessage}
       </Snackbar>

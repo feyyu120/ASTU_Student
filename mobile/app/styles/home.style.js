@@ -1,4 +1,5 @@
 import { StyleSheet } from "react-native";
+import Colors from "../constant/color"
 
 const styles = StyleSheet.create({
   container: {
@@ -22,7 +23,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#620d6c",
+    color: Colors.secondary,
   },
   card: {
     backgroundColor: "white",
@@ -45,23 +46,23 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#333",
+    color: Colors.textPrimary,
     marginBottom: 6,
   },
   description: {
     fontSize: 14,
-    color: "#555",
-    marginBottom: 8,
+    color: Colors.textSecondary,
+    marginBottom: 5,
   },
   location: {
     fontSize: 13,
-    color: "#777",
+    color: Colors.textSecondary,
     marginBottom: 4,
   },
   date: {
     fontSize: 13,
-    color: "#999",
-    marginBottom: 12,
+    color: Colors.textSecondary,
+    marginBottom: 10,
   },
 });
 

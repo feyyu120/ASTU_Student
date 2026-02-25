@@ -38,7 +38,7 @@ export default function Layout() {
             backgroundColor:"#fff",
           
           },
-          tabBarActiveTintColor:"#6a17b2",
+          tabBarActiveTintColor:"#296d5c",
           tabBarInactiveTintColor:"#6c757d",
         
         }}>

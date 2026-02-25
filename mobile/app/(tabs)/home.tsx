@@ -6,18 +6,20 @@ import {
   Image,
   TouchableOpacity,
   SafeAreaView,
-  TextInput,
+
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Button, Snackbar } from "react-native-paper";
+import { Button,  TextInput, Snackbar } from "react-native-paper";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import styles from "../styles/home.style";
+import Colors from "../constant/color"; // Your colors file
 
-const API_URL = "http://localhost:5000"; // Change to production later
+// Use your computer's real IP (not localhost)
+const API_BASE = "http://localhost:5000"; // ← CHANGE THIS
 
 export default function Home() {
   const [items, setItems] = useState([]);
@@ -38,43 +40,47 @@ export default function Home() {
     setIsLoggedIn(!!token);
   };
 
-  const fetchItems = async (query = "") => {
-    setIsLoading(true);
-    setErrorMessage("");
+ const fetchItems = async (query = "") => {
+  setIsLoading(true);
+  setErrorMessage("");
 
-    try {
-      let url = `${API_URL}/api/items/search`;
-      if (query.trim()) {
-        url += `?category=${encodeURIComponent(query.trim())}&location=${encodeURIComponent(query.trim())}`;
-      }
-
-      const token = await SecureStore.getItemAsync("authToken");
-      const response = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to load items");
-      }
-
-      setItems(data);
-    } catch (error) {
-      setErrorMessage(error.message || "Could not load items. Try again.");
-    } finally {
-      setIsLoading(false);
-      setRefreshing(false);
+  try {
+    let url = `${API_BASE}/api/items/search`;
+    if (query.trim()) {
+      url += `?q=${encodeURIComponent(query.trim())}`; // ← single q param
     }
-  };
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchItems(searchQuery); // Refresh with current search or all
-  }, [searchQuery]);
+    const token = await SecureStore.getItemAsync("authToken");
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("Fetched items:", data); // Debug
+    setItems(data);
+  } catch (error) {
+    console.error("Fetch error:", error);
+    setErrorMessage(error.message || "Could not load items");
+  } finally {
+    setIsLoading(false);
+    setRefreshing(false);
+  }
+};
+
+ const onRefresh = useCallback(() => {
+  setRefreshing(true);
+  setSearchQuery("");      
+  setShowSearch(false);   
+  fetchItems();  
+}, []);
 
   const handleSearch = () => {
-    fetchItems(searchQuery);
+    fetchItems(searchQuery.trim());
     setShowSearch(false);
   };
 
@@ -86,7 +92,7 @@ export default function Home() {
 
     try {
       const token = await SecureStore.getItemAsync("authToken");
-      const response = await fetch(`${API_URL}/api/claims/${itemId}`, {
+      const response = await fetch(`${API_BASE}/api/claims/${itemId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -94,13 +100,12 @@ export default function Home() {
         },
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.message || "Failed to submit claim");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Claim failed");
       }
 
-      fetchItems(searchQuery); // Refresh list
+      fetchItems(searchQuery);
       setErrorMessage("Claim submitted successfully!");
     } catch (error) {
       setErrorMessage(error.message || "Could not claim item");
@@ -109,29 +114,42 @@ export default function Home() {
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
-      {item.imageUrl && (
+      {item.imageUrl ? (
         <Image
-          source={{ uri: `${API_URL}${item.imageUrl}` }}
+          source={{
+            uri: item.imageUrl.startsWith("http")
+              ? item.imageUrl
+              : `${API_BASE}${item.imageUrl}`,
+          }}
           style={styles.cardImage}
           resizeMode="cover"
+          onError={(e) => console.log("Image load failed:", item.imageUrl, e.nativeEvent.error)}
         />
+      ) : (
+        <View style={[styles.cardImage, { backgroundColor: "#eee", justifyContent: "center", alignItems: "center" }]}>
+          <Text style={{ color: "#999" }}>No image</Text>
+        </View>
       )}
 
       <View style={styles.cardContent}>
         <Text style={styles.itemTitle}>
-          {item.type.toUpperCase()} - {item.category}
+          {item.type?.toUpperCase() || "ITEM"} - {item.category || "Unknown"}
         </Text>
-        <Text style={styles.description}>{item.description}</Text>
-        <Text style={styles.location}>Location: {item.location}</Text>
+        <Text style={styles.description} numberOfLines={2}>
+          {item.description || "No description"}
+        </Text>
+        <Text style={styles.location}>
+          Location: {item.location || "Not specified"}
+        </Text>
         <Text style={styles.date}>
-          {new Date(item.date).toLocaleDateString()}
+          {item.date ? new Date(item.date).toLocaleDateString() : "No date"}
         </Text>
 
         {item.status !== "resolved" && isLoggedIn && (
           <Button
             mode="contained"
             onPress={() => handleClaim(item._id)}
-            buttonColor={item.status === "claimed" ? "#757575" : "#16bd93"}
+            buttonColor={item.status === "claimed" ? "#757575" : Colors.secondary}
             style={{ marginTop: 12, borderRadius: 8 }}
             disabled={item.status === "claimed"}
           >
@@ -150,7 +168,7 @@ export default function Home() {
           <Text style={styles.title}>Lost Materials</Text>
 
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <TouchableOpacity onPress={() => setShowSearch(true)}>
+            <TouchableOpacity onPress={() => setShowSearch(!showSearch)}>
               <Ionicons name="search" size={24} color="#535050" style={{ marginRight: 20 }} />
             </TouchableOpacity>
 
@@ -160,7 +178,7 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Search Bar (shown when icon tapped) */}
+        {/* Search Bar */}
         {showSearch && (
           <View style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "#fff" }}>
             <TextInput
@@ -168,70 +186,75 @@ export default function Home() {
               placeholder="Search by category or location..."
               value={searchQuery}
               onChangeText={setSearchQuery}
-              onSubmitEditing={handleSearch} // Search when pressing "Enter" on keyboard
-              right={
-                <TextInput.Icon
-                  icon="magnify"
-                  onPress={handleSearch} // Now safe – no crash
-                  color="#16bd93"
-                />
-              }
+              onSubmitEditing={handleSearch}
               outlineStyle={{ borderRadius: 12 }}
               style={{ backgroundColor: "white" }}
+              right={<TextInput.Icon icon="magnify" color={Colors.textSecondary} />}
             />
-            <Button
-              mode="text"
-              onPress={() => {
-                setSearchQuery("");
-                setShowSearch(false);
-                fetchItems();
-              }}
-              textColor="#757575"
-              style={{ alignSelf: "flex-end", marginTop: 4 }}
-            >
-              Cancel
-            </Button>
+
+            <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 8 }}>
+              <Button
+                mode="text"
+                onPress={handleSearch}
+                textColor={Colors.primary}
+                style={{ marginRight: 12 }}
+              >
+                Search
+              </Button>
+              <Button
+                mode="text"
+                onPress={() => {
+                  setSearchQuery("");
+                  setShowSearch(false);
+                  fetchItems();
+                }}
+                textColor={Colors.textSecondary}
+              >
+                Cancel
+              </Button>
+            </View>
           </View>
         )}
 
-        {/* Main Content with Pull-to-Refresh */}
+        {/* Pull-to-Refresh List */}
         <FlatList
           data={items}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item) => item._id || String(Math.random())}
           renderItem={renderItem}
-          ListEmptyComponent={
-            isLoading ? null : (
-              <Text style={{ textAlign: "center", marginTop: 100, color: "#666" }}>
-                No items found. Try searching differently.
-              </Text>
-            )
-          }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={["#16bd93"]}
-              tintColor="#16bd93"
+              colors={[Colors.secondary]}
+              tintColor={Colors.secondary}
             />
           }
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
+          ListEmptyComponent={
+            isLoading ? null : (
+              <Text style={{ textAlign: "center", marginTop: 100, color: Colors.textSecondary, fontSize: 16 }}>
+                {searchQuery.trim() ? "No matching items found." : "No items found yet."}
+              </Text>
+            )
+          }
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
         />
 
         {isLoading && !refreshing && (
-          <ActivityIndicator size="large" color="#16bd93" style={{ position: "absolute", top: "50%", left: "50%" }} />
+          <ActivityIndicator
+            size="large"
+            color={Colors.secondary}
+            style={{ position: "absolute", top: "50%", left: "50%", marginLeft: -20 }}
+          />
         )}
       </SafeAreaView>
 
-      {/* Snackbar for messages */}
+      {/* Snackbar */}
       <Snackbar
         visible={!!errorMessage}
         onDismiss={() => setErrorMessage("")}
         duration={4000}
-        action={{
-          label: "OK",
-          onPress: () => setErrorMessage(""),
-        }}
-        style={{ backgroundColor: errorMessage.includes("success") ? "#16bd93" : "#d32f2f" }}
+        action={{ label: "OK", onPress: () => setErrorMessage("") }}
+        style={{ backgroundColor: errorMessage.includes("success") ? Colors.success : Colors.error }}
       >
         {errorMessage}
       </Snackbar>
