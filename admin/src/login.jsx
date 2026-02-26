@@ -17,7 +17,7 @@ import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
 import axios from 'axios';
 import { TypeAnimation } from 'react-type-animation';
 
-const API_BASE = 'http://localhost:5000'; // ← CHANGE TO YOUR BACKEND URL (or production URL)
+const API_BASE = 'http://localhost:5000'; // Change to your backend URL
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -30,29 +30,41 @@ export default function AdminLogin() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    
+    if (!email.trim() || !password.trim()) {
+      setError('Email and password are required');
+      return;
+    }
+
     setError('');
     setSuccess('');
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API_BASE}/api/auth/login`, { email, password });
+      const res = await axios.post(`${API_BASE}/api/auth/login`, { 
+        email: email.trim(), 
+        password 
+      });
+
       const { token, user } = res.data;
 
-      // Save to localStorage (web standard)
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
 
-      // Check role
+      // Role check
       if (user.role !== 'admin') {
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
         throw new Error('Access denied. Admin login only.');
       }
 
-      setSuccess('Login successful! Redirecting to admin dashboard...');
-      setTimeout(() => navigate('/admin'), 1500);
+      setSuccess('Login successful! Redirecting to dashboard...');
+      setTimeout(() => navigate('/admin', { replace: true }), 1500);
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Check your email and password.');
+      const errMsg = err.response?.data?.message 
+        || err.message 
+        || 'Login failed. Please check your credentials.';
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
@@ -65,7 +77,7 @@ export default function AdminLogin() {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        py: 4
+        py: { xs: 4, md: 8 }
       }}>
         <Paper 
           elevation={10} 
@@ -75,14 +87,15 @@ export default function AdminLogin() {
             width: '100%',
             maxWidth: 480,
             background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.15)'
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+            border: '1px solid #e0e0e0'
           }}
         >
           {/* Logo & Welcome */}
           <Box sx={{ textAlign: 'center', mb: 5 }}>
             <img 
-              src="/assets/images/delivery.png" // ← update with your actual logo path
-              alt="ASTU Logo"
+              src="/assets/images/delivery.png" // ← FIX: use correct path to your image
+              alt="ASTU Admin Logo"
               style={{ 
                 width: 140, 
                 height: 140, 
@@ -91,10 +104,15 @@ export default function AdminLogin() {
               }}
             />
             <TypeAnimation
-              sequence={['Admin Login', 800, 'Secure Access Only', 800]}
+              sequence={[
+                'Admin Login',
+                1000,
+                'Secure Admin Portal',
+                1000,
+              ]}
               wrapper="h1"
               speed={50}
-              repeat={0}
+              repeat={Infinity}
               style={{ 
                 fontSize: '2.5rem', 
                 fontWeight: 700, 
@@ -103,19 +121,19 @@ export default function AdminLogin() {
                 display: 'inline-block'
               }}
             />
-            <Typography variant="body2" color="text.secondary">
-              Please sign in to access the admin panel
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Restricted access — admins only
             </Typography>
           </Box>
 
-          {/* Messages */}
+          {/* Alerts */}
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+            <Alert severity="error" sx={{ mb: 4 }} onClose={() => setError('')}>
               {error}
             </Alert>
           )}
           {success && (
-            <Alert severity="success" sx={{ mb: 3 }}>
+            <Alert severity="success" sx={{ mb: 4 }}>
               {success}
             </Alert>
           )}
@@ -124,7 +142,7 @@ export default function AdminLogin() {
           <form onSubmit={handleLogin}>
             <TextField
               fullWidth
-              label="Email"
+              label="Email Address"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value.trim())}
@@ -132,6 +150,7 @@ export default function AdminLogin() {
               variant="outlined"
               required
               autoFocus
+              autoComplete="email"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -151,6 +170,7 @@ export default function AdminLogin() {
               margin="normal"
               variant="outlined"
               required
+              autoComplete="current-password"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -184,7 +204,8 @@ export default function AdminLogin() {
                 fontWeight: 'bold',
                 borderRadius: 2,
                 textTransform: 'none',
-                fontSize: '1.1rem'
+                fontSize: '1.1rem',
+                boxShadow: '0 4px 12px rgba(22,189,147,0.3)'
               }}
             >
               {loading ? (
@@ -195,15 +216,12 @@ export default function AdminLogin() {
             </Button>
           </form>
 
-          {/* Footer note */}
-          <Typography 
-            variant="body2" 
-            align="center" 
-            color="text.secondary" 
-            sx={{ mt: 4, fontSize: '0.9rem' }}
-          >
-            This is a restricted area. Unauthorized access is prohibited.
-          </Typography>
+          {/* Footer */}
+          <Box sx={{ mt: 4, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              This is a restricted admin area. Unauthorized access is prohibited.
+            </Typography>
+          </Box>
         </Paper>
       </Box>
     </Container>

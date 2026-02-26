@@ -34,8 +34,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-// Change to your backend URL
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'http://localhost:5000'; // ← CHANGE TO YOUR BACKEND URL
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -49,40 +48,48 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
-  const [token, setToken] = useState(localStorage.getItem('authToken'));
 
   useEffect(() => {
-    if (!token) {
-      navigate('/admin-login');
+    const token = localStorage.getItem('authToken');
+    const user = JSON.parse(localStorage.getItem('user'));
+
+    // No token or not admin → redirect to login
+    if (!user || user.role !== 'admin') {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      navigate('/login', { replace: true });
       return;
     }
-    fetchAdminData();
-  }, [navigate, token]);
 
-  const fetchAdminData = async () => {
+    // Token + admin role exists → load data
+    fetchAdminData(token);
+  }, [navigate]); // Only depend on navigate — no token state loop
+
+  const fetchAdminData = async (token) => {
     setLoading(true);
     setError(null);
 
     try {
-      // 1. Stats
+   
       const statsRes = await axios.get(`${API_BASE}/api/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(statsRes.data);
 
-      // 2. Pending claims
       const claimsRes = await axios.get(`${API_BASE}/api/claims/pending`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setClaims(claimsRes.data);
     } catch (err) {
-      console.error(err);
+      console.error('Admin data fetch error:', err);
       const msg = err.response?.data?.message || 'Failed to load admin data';
       setError(msg);
 
+      
       if (err.response?.status === 401 || err.response?.status === 403) {
         localStorage.removeItem('authToken');
-        navigate('/admin-login');
+        localStorage.removeItem('user');
+        navigate('/login', { replace: true });
       }
     } finally {
       setLoading(false);
@@ -94,6 +101,8 @@ export default function AdminDashboard() {
     
     if (!window.confirm(`Are you sure you want to ${actionText.toLowerCase()} this claim?`)) return;
 
+    const token = localStorage.getItem('authToken');
+
     try {
       await axios.patch(
         `${API_BASE}/api/claims/${claimId}`,
@@ -102,7 +111,7 @@ export default function AdminDashboard() {
       );
 
       setSuccessMsg(`Claim ${actionText.toLowerCase()}d successfully`);
-      fetchAdminData(); // Refresh data
+      fetchAdminData(token);
     } catch (err) {
       const msg = err.response?.data?.message || `Failed to ${action} claim`;
       setError(msg);
@@ -111,7 +120,8 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
-    navigate('/admin-login');
+    localStorage.removeItem('user');
+    navigate('/login', { replace: true });
   };
 
   if (loading) {
@@ -141,7 +151,7 @@ export default function AdminDashboard() {
           <Button
             variant="outlined"
             startIcon={<RefreshIcon />}
-            onClick={fetchAdminData}
+            onClick={() => fetchAdminData(localStorage.getItem('authToken'))}
             sx={{ mr: 2 }}
           >
             Refresh
@@ -173,7 +183,7 @@ export default function AdminDashboard() {
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 6 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden' }}>
             <CardContent sx={{ textAlign: 'center', py: 5 }}>
               <UsersIcon sx={{ fontSize: 56, color: '#1976d2', mb: 2 }} />
@@ -187,7 +197,7 @@ export default function AdminDashboard() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden' }}>
             <CardContent sx={{ textAlign: 'center', py: 5 }}>
               <ItemsIcon sx={{ fontSize: 56, color: '#1976d2', mb: 2 }} />
@@ -201,7 +211,7 @@ export default function AdminDashboard() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden' }}>
             <CardContent sx={{ textAlign: 'center', py: 5 }}>
               <PendingIcon sx={{ fontSize: 56, color: '#f57c00', mb: 2 }} />
@@ -215,7 +225,7 @@ export default function AdminDashboard() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden' }}>
             <CardContent sx={{ textAlign: 'center', py: 5 }}>
               <ResolvedIcon sx={{ fontSize: 56, color: '#2e7d32', mb: 2 }} />
@@ -243,7 +253,10 @@ export default function AdminDashboard() {
           <Typography variant="h6" component="h2" fontWeight="bold">
             Pending Claims
           </Typography>
-          <IconButton onClick={fetchAdminData} color="primary">
+          <IconButton 
+            onClick={() => fetchAdminData(localStorage.getItem('authToken'))} 
+            color="primary"
+          >
             <RefreshIcon />
           </IconButton>
         </Box>
