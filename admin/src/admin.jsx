@@ -1,4 +1,4 @@
-// src/pages/admin.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -34,7 +34,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5000'; // ← CHANGE TO YOUR BACKEND URL
+const API_BASE = 'http://localhost:5000'; 
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -53,7 +53,7 @@ export default function AdminDashboard() {
     const token = localStorage.getItem('authToken');
     const user = JSON.parse(localStorage.getItem('user'));
 
-    // No token or not admin → redirect to login
+
     if (!user || user.role !== 'admin') {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
@@ -61,9 +61,9 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Token + admin role exists → load data
+  
     fetchAdminData(token);
-  }, [navigate]); // Only depend on navigate — no token state loop
+  }, [navigate]); 
 
   const fetchAdminData = async (token) => {
     setLoading(true);
@@ -96,27 +96,28 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleClaimAction = async (claimId, action) => {
-    const actionText = action === 'approve' ? 'Approve' : 'Reject';
-    
-    if (!window.confirm(`Are you sure you want to ${actionText.toLowerCase()} this claim?`)) return;
+ const handleClaimAction = async (claimId, action) => {
+  const status = action === 'approve' ? 'approved' : 'rejected';  // ← Add "ed"
+  const actionText = action === 'approve' ? 'Approve' : 'Reject';
 
-    const token = localStorage.getItem('authToken');
+  if (!window.confirm(`Are you sure you want to ${actionText.toLowerCase()} this claim?`)) return;
 
-    try {
-      await axios.patch(
-        `${API_BASE}/api/claims/${claimId}`,
-        { status: action },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  const token = localStorage.getItem('authToken');
 
-      setSuccessMsg(`Claim ${actionText.toLowerCase()}d successfully`);
-      fetchAdminData(token);
-    } catch (err) {
-      const msg = err.response?.data?.message || `Failed to ${action} claim`;
-      setError(msg);
-    }
-  };
+  try {
+    await axios.put(
+      `${API_BASE}/api/claims/${claimId}`,
+      { status },  
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    setSuccessMsg(`Claim ${actionText.toLowerCase()}d successfully`);
+    fetchAdminData(token);
+  } catch (err) {
+    const msg = err.response?.data?.message || `Failed to ${actionText.toLowerCase()} claim`;
+    setError(msg);
+  }
+};
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
@@ -134,7 +135,7 @@ export default function AdminDashboard() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Header */}
+
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -181,7 +182,7 @@ export default function AdminDashboard() {
         </Alert>
       )}
 
-      {/* Stats Cards */}
+     
       <Grid container spacing={3} sx={{ mb: 6 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden' }}>

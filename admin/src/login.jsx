@@ -59,6 +59,7 @@ export default function AdminLogin() {
       }
 
       setSuccess('Login successful! Redirecting to dashboard...');
+      console.log(token,user.role)
       setTimeout(() => navigate('/admin', { replace: true }), 1500);
     } catch (err) {
       const errMsg = err.response?.data?.message 
@@ -93,16 +94,7 @@ export default function AdminLogin() {
         >
           {/* Logo & Welcome */}
           <Box sx={{ textAlign: 'center', mb: 5 }}>
-            <img 
-              src="/assets/images/delivery.png" // ← FIX: use correct path to your image
-              alt="ASTU Admin Logo"
-              style={{ 
-                width: 140, 
-                height: 140, 
-                marginBottom: 24, 
-                objectFit: 'contain' 
-              }}
-            />
+          
             <TypeAnimation
               sequence={[
                 'Admin Login',
