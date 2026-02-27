@@ -1,4 +1,4 @@
-// src/pages/admin-login.jsx
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -17,7 +17,7 @@ import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
 import axios from 'axios';
 import { TypeAnimation } from 'react-type-animation';
 
-const API_BASE = 'http://localhost:5000'; // Change to your backend URL
+const API_BASE = 'http://localhost:5000'; 
 
 export default function AdminLogin() {
   const navigate = useNavigate();

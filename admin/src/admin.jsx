@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -21,6 +20,11 @@ import {
   IconButton,
   Tooltip,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider,
 } from '@mui/material';
 import { 
   Refresh as RefreshIcon,
@@ -31,6 +35,9 @@ import {
   PendingActions as PendingIcon,
   DoneAll as ResolvedIcon,
   Logout as LogoutIcon,
+  Visibility as ViewIcon,
+  ThumbUp as ApprovedIcon,
+  ThumbDown as RejectedIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -43,16 +50,23 @@ export default function AdminDashboard() {
     totalItems: 0,
     pendingClaims: 0,
     resolvedItems: 0,
+    approvedClaims: 0,
+    rejectedClaims: 0,
   });
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Modal state
+  const [selectedClaim, setSelectedClaim] = useState(null);
+  const [claimDetails, setClaimDetails] = useState([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const user = JSON.parse(localStorage.getItem('user'));
-
 
     if (!user || user.role !== 'admin') {
       localStorage.removeItem('authToken');
@@ -61,16 +75,14 @@ export default function AdminDashboard() {
       return;
     }
 
-  
     fetchAdminData(token);
-  }, [navigate]); 
+  }, [navigate]);
 
   const fetchAdminData = async (token) => {
     setLoading(true);
     setError(null);
 
     try {
-   
       const statsRes = await axios.get(`${API_BASE}/api/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -85,7 +97,6 @@ export default function AdminDashboard() {
       const msg = err.response?.data?.message || 'Failed to load admin data';
       setError(msg);
 
-      
       if (err.response?.status === 401 || err.response?.status === 403) {
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
@@ -96,28 +107,53 @@ export default function AdminDashboard() {
     }
   };
 
- const handleClaimAction = async (claimId, action) => {
-  const status = action === 'approve' ? 'approved' : 'rejected';  // ← Add "ed"
-  const actionText = action === 'approve' ? 'Approve' : 'Reject';
+  const fetchClaimDetails = async (claimId) => {
+    setDetailsLoading(true);
+    setClaimDetails([]);
 
-  if (!window.confirm(`Are you sure you want to ${actionText.toLowerCase()} this claim?`)) return;
+    try {
+      const token = localStorage.getItem('authToken');
+      const res = await axios.get(`${API_BASE}/api/claimDetails/claim/${claimId}/details`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setClaimDetails(res.data || []);
+    } catch (err) {
+      console.error('Fetch claim details error:', err);
+      setClaimDetails([]);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
 
-  const token = localStorage.getItem('authToken');
+  const openDetailsModal = (claim) => {
+    setSelectedClaim(claim);
+    fetchClaimDetails(claim._id);
+    setOpenModal(true);
+  };
 
-  try {
-    await axios.put(
-      `${API_BASE}/api/claims/${claimId}`,
-      { status },  
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+  const handleClaimAction = async (claimId, action) => {
+    const status = action === 'approve' ? 'approved' : 'rejected';
+    const actionText = action === 'approve' ? 'Approve' : 'Reject';
 
-    setSuccessMsg(`Claim ${actionText.toLowerCase()}d successfully`);
-    fetchAdminData(token);
-  } catch (err) {
-    const msg = err.response?.data?.message || `Failed to ${actionText.toLowerCase()} claim`;
-    setError(msg);
-  }
-};
+    if (!window.confirm(`Are you sure you want to ${actionText.toLowerCase()} this claim?`)) return;
+
+    const token = localStorage.getItem('authToken');
+
+    try {
+      await axios.put(
+        `${API_BASE}/api/claims/${claimId}`,
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setSuccessMsg(`Claim ${actionText.toLowerCase()}d successfully`);
+      setOpenModal(false);
+      fetchAdminData(token);
+    } catch (err) {
+      const msg = err.response?.data?.message || `Failed to ${actionText.toLowerCase()} claim`;
+      setError(msg);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
@@ -134,13 +170,12 @@ export default function AdminDashboard() {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-
+    <Container maxWidth="xl" sx={{ py: { xs: 2, md: 4 } }}>
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        mb: 5,
+        mb: { xs: 3, md: 5 },
         pb: 2,
         borderBottom: '1px solid #e0e0e0'
       }}>
@@ -169,7 +204,6 @@ export default function AdminDashboard() {
         </Box>
       </Box>
 
-      {/* Messages */}
       {error && (
         <Alert severity="error" sx={{ mb: 4 }} onClose={() => setError(null)}>
           {error}
@@ -182,10 +216,11 @@ export default function AdminDashboard() {
         </Alert>
       )}
 
-     
-      <Grid container spacing={3} sx={{ mb: 6 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+      {/* Stats Cards – Improved spacing & responsiveness */}
+      <Grid container spacing={{ xs: 3, md: 4 }} sx={{ mb: { xs: 4, md: 6 } }}>
+        {/* Total Users */}
+        <Grid item xs={12} sm={6} md={4} lg={2}>
+          <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden', height: '100%' }}>
             <CardContent sx={{ textAlign: 'center', py: 5 }}>
               <UsersIcon sx={{ fontSize: 56, color: '#1976d2', mb: 2 }} />
               <Typography variant="h3" fontWeight="bold" color="primary">
@@ -198,8 +233,9 @@ export default function AdminDashboard() {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+        {/* Total Items – wider on medium screens */}
+        <Grid item xs={12} sm={6} md={6} lg={3}>
+          <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden', height: '100%' }}>
             <CardContent sx={{ textAlign: 'center', py: 5 }}>
               <ItemsIcon sx={{ fontSize: 56, color: '#1976d2', mb: 2 }} />
               <Typography variant="h3" fontWeight="bold" color="primary">
@@ -212,8 +248,9 @@ export default function AdminDashboard() {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+        {/* Pending Claims */}
+        <Grid item xs={12} sm={6} md={4} lg={2}>
+          <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden', height: '100%' }}>
             <CardContent sx={{ textAlign: 'center', py: 5 }}>
               <PendingIcon sx={{ fontSize: 56, color: '#f57c00', mb: 2 }} />
               <Typography variant="h3" fontWeight="bold" color="warning.main">
@@ -226,15 +263,33 @@ export default function AdminDashboard() {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+       
+
+        {/* Approved Claims */}
+        <Grid item xs={12} sm={6} md={4} lg={2}>
+          <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden', height: '100%' }}>
             <CardContent sx={{ textAlign: 'center', py: 5 }}>
-              <ResolvedIcon sx={{ fontSize: 56, color: '#2e7d32', mb: 2 }} />
+              <ApprovedIcon sx={{ fontSize: 56, color: '#4caf50', mb: 2 }} />
               <Typography variant="h3" fontWeight="bold" color="success.main">
-                {stats.resolvedItems}
+                {stats.approvedClaims || 0}
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Resolved Items
+                Approved Claims
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Rejected Claims */}
+        <Grid item xs={12} sm={6} md={4} lg={2}>
+          <Card elevation={6} sx={{ borderRadius: 3, overflow: 'hidden', height: '100%' }}>
+            <CardContent sx={{ textAlign: 'center', py: 5 }}>
+              <RejectedIcon sx={{ fontSize: 56, color: '#f44336', mb: 2 }} />
+              <Typography variant="h3" fontWeight="bold" color="error.main">
+                {stats.rejectedClaims || 0}
+              </Typography>
+              <Typography variant="h6" color="text.secondary">
+                Rejected Claims
               </Typography>
             </CardContent>
           </Card>
@@ -327,6 +382,16 @@ export default function AdminDashboard() {
                     </TableCell>
 
                     <TableCell align="right">
+                      <Tooltip title="View Details & ID">
+                        <IconButton 
+                          color="primary"
+                          onClick={() => openDetailsModal(claim)}
+                          sx={{ mr: 1 }}
+                        >
+                          <ViewIcon fontSize="large" />
+                        </IconButton>
+                      </Tooltip>
+
                       <Tooltip title="Approve">
                         <IconButton 
                           color="success" 
@@ -336,6 +401,7 @@ export default function AdminDashboard() {
                           <ApproveIcon fontSize="large" />
                         </IconButton>
                       </Tooltip>
+
                       <Tooltip title="Reject">
                         <IconButton 
                           color="error" 
@@ -352,6 +418,88 @@ export default function AdminDashboard() {
           </TableContainer>
         )}
       </Paper>
+
+      {/* Details Modal */}
+      <Dialog 
+        open={openModal} 
+        onClose={() => setOpenModal(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Claim Details - {selectedClaim?.itemId?.description || 'Item'}
+        </DialogTitle>
+        <DialogContent dividers>
+          {detailsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : claimDetails.length === 0 ? (
+            <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
+              No additional details or ID photo submitted yet.
+            </Typography>
+          ) : (
+            claimDetails.map((detail) => (
+              <Box key={detail._id} sx={{ mb: 4 }}>
+                {detail.content && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Submitted Text:
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {detail.content}
+                    </Typography>
+                  </Box>
+                )}
+
+                {detail.imageUrl && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Uploaded ID/Photo:
+                    </Typography>
+                    <img 
+                      src={detail.imageUrl} 
+                      alt="User ID Photo" 
+                      style={{ 
+                        maxWidth: '100%', 
+                        maxHeight: 400, 
+                        borderRadius: 8, 
+                        border: '1px solid #ddd',
+                        objectFit: 'contain'
+                      }}
+                    />
+                  </Box>
+                )}
+
+                <Divider sx={{ my: 3 }} />
+              </Box>
+            ))
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenModal(false)}>Close</Button>
+          {selectedClaim && (
+            <>
+              <Button 
+                color="success" 
+                variant="contained"
+                onClick={() => handleClaimAction(selectedClaim._id, 'approve')}
+                disabled={selectedClaim.status !== 'pending'}
+              >
+                Approve
+              </Button>
+              <Button 
+                color="error" 
+                variant="contained"
+                onClick={() => handleClaimAction(selectedClaim._id, 'reject')}
+                disabled={selectedClaim.status !== 'pending'}
+              >
+                Reject
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
