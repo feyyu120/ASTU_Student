@@ -138,22 +138,26 @@ export default function Post() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={{ padding: 20 }} keyboardDismissMode="on-drag">
-         
+
+        <View style={{backgroundColor:"white",borderBottomWidth:0.2,borderBottomColor:"rgba(203, 196, 203, 0.53)"
+    
+
+    }}>
+          <>  
           <Text
             style={{
               fontSize: 26,
               fontWeight: "bold",
               color: Colors.textSecondary,
               textAlign: "center",
-              marginBottom: 24,
+              marginBottom: 14,
+              marginTop:15
             }}
           >
             Report {type === "lost" ? "Lost" : "Found"} Item
           </Text>
-
-         
-          <View style={{ flexDirection: "row", justifyContent: "center", marginBottom: 32 }}>
+           <View style={{ flexDirection: "row", justifyContent: "center", marginBottom: 12}}>
+            <>  
             <TouchableOpacity
               onPress={() => setType("lost")}
               style={{
@@ -198,7 +202,19 @@ export default function Post() {
                 Found
               </Text>
             </TouchableOpacity>
+                  </>
           </View>
+           </>
+          </View>
+        <ScrollView contentContainerStyle={{ padding: 20 }} keyboardDismissMode="on-drag">
+         <View style={{backgroundColor:"white",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    elevation:4,padding:20,borderRadius:20}}> 
+
+         
+         
 
          
           <Text style={{ fontSize: 16, color: Colors.textPrimary, marginBottom: 6, fontWeight: "600" }}>
@@ -239,9 +255,6 @@ export default function Post() {
               marginBottom: 20,
             }}
           />
-
-        
-         
         
           <TouchableOpacity
             onPress={pickImage}
@@ -321,6 +334,7 @@ export default function Post() {
           >
             Cancel
           </Button>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 

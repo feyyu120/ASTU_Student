@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -8,7 +7,10 @@ import {
   SafeAreaView,
   ActivityIndicator,
   RefreshControl,
+  Alert,
+  Platform,
 } from 'react-native';
+import { Button } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
@@ -21,7 +23,6 @@ export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchNotifications();
@@ -29,7 +30,6 @@ export default function Notifications() {
 
   const fetchNotifications = async () => {
     setLoading(true);
-    setError('');
 
     try {
       const token = await SecureStore.getItemAsync('authToken');
@@ -50,8 +50,8 @@ export default function Notifications() {
       const data = await res.json();
       setNotifications(data || []);
     } catch (err) {
-      console.error('Notifications fetch error:', err);
-      setError(err.message || 'Could not load notifications');
+      console.error('Fetch error:', err);
+      Alert.alert('Error', 'Could not load notifications. Check connection.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -79,55 +79,106 @@ export default function Notifications() {
     }
   };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      onPress={() => markAsRead(item._id)}
-      style={{
-        padding: 16,
-        backgroundColor: item.read ? '#fff' : '#f0f8ff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        {!item.read && (
-          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.secondary, marginRight: 12 }} />
-        )}
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: item.read ? 'normal' : 'bold', fontSize: 16 }}>
-            {item.title}
-          </Text>
-          <Text style={{ color: '#555', marginTop: 4 }}>{item.body}</Text>
-          <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>
-            {new Date(item.createdAt).toLocaleString()}
+  const goToSendDetails = () => {
+    router.push('/send'); // ← pushes to send.tsx
+  };
+
+  const renderNotification = ({ item }) => {
+    const isIdRequest = item.title?.toLowerCase().includes('provide') || item.body?.toLowerCase().includes('details');
+
+    return (
+      <TouchableOpacity
+        onPress={() => markAsRead(item._id)}
+        style={{
+          padding: 16,
+          backgroundColor: item.read ? '#ffffff' : '#f8faff',
+          borderBottomWidth: 1,
+          borderBottomColor: '#e0e0e0',
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          {!item.read && (
+            <View style={{
+              width: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: Colors.secondary,
+              marginRight: 12,
+            }} />
+          )}
+          <Text style={{
+            flex: 1,
+            fontWeight: item.read ? '500' : '700',
+            fontSize: 16,
+            color: '#1a1a1a',
+          }}>
+            {item.title || 'Notification'}
           </Text>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+
+        <Text style={{ color: '#444', lineHeight: 20, marginBottom: 8 }}>
+          {item.body || 'No content'}
+        </Text>
+
+        {item.imageUrl && (
+          <Image
+            source={{ uri: item.imageUrl }}
+            style={{ width: '100%', height: 180, marginTop: 8, borderRadius: 10 }}
+            resizeMode="contain"
+          />
+        )}
+
+        <Text style={{ color: '#888', fontSize: 12, marginTop: 8 }}>
+          {new Date(item.createdAt).toLocaleString()}
+        </Text>
+
+        {/* Special "Send Details" button for ID request notifications */}
+        {isIdRequest && (
+          <Button
+            mode="contained"
+            onPress={goToSendDetails}
+            buttonColor={Colors.secondary}
+            style={{ marginTop: 12, borderRadius: 12 }}
+            labelStyle={{ fontSize: 14, fontWeight: '600' }}
+          >
+            Send Details & ID Photo
+          </Button>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee' }}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={{ fontSize: 20, fontWeight: 'bold', marginLeft: 16 }}>Notifications</Text>
-        </View>
-
+       
+        {/* Content */}
         {loading ? (
-          <ActivityIndicator size="large" color={Colors.secondary} style={{ marginTop: 50 }} />
-        ) : error ? (
-          <Text style={{ textAlign: 'center', marginTop: 50, color: 'red' }}>{error}</Text>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={Colors.secondary} />
+          </View>
         ) : notifications.length === 0 ? (
-          <Text style={{ textAlign: 'center', marginTop: 50, color: '#777' }}>No notifications yet</Text>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, color: '#777', textAlign: 'center' }}>
+              No notifications yet
+            </Text>
+          </View>
         ) : (
           <FlatList
             data={notifications}
             keyExtractor={item => item._id}
-            renderItem={renderItem}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            renderItem={renderNotification}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => {
+                  setRefreshing(true);
+                  fetchNotifications();
+                }}
+                colors={[Colors.secondary]}
+              />
+            }
+            contentContainerStyle={{ paddingBottom: 20 }}
           />
         )}
       </SafeAreaView>

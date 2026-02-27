@@ -17,8 +17,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import styles from "../styles/home.style";
 import Colors from "../constant/color";
 
-// Use your computer's real IP (not localhost)
-const API_BASE = "http://localhost:5000"; // ← CHANGE THIS TO YOUR REAL IP
+const API_BASE = "http://localhost:5000"; // ← CHANGE TO YOUR COMPUTER'S REAL IP
 
 export default function Home() {
   const [items, setItems] = useState([]);
@@ -28,12 +27,12 @@ export default function Home() {
   const [showSearch, setShowSearch] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0); // ← New: unread notifications badge
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     checkAuth();
     fetchItems();
-    fetchUnreadCount(); // ← New: load badge on mount
+    fetchUnreadCount();
   }, []);
 
   const checkAuth = async () => {
@@ -72,14 +71,10 @@ export default function Home() {
     }
   };
 
-  // New: Fetch unread notification count
   const fetchUnreadCount = async () => {
     try {
       const token = await SecureStore.getItemAsync("authToken");
-      if (!token) {
-        setUnreadCount(0);
-        return;
-      }
+      if (!token) return;
 
       const res = await fetch(`${API_BASE}/api/notifications/unread-count`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -90,8 +85,7 @@ export default function Home() {
         setUnreadCount(data.unreadCount || 0);
       }
     } catch (err) {
-      console.log("Failed to fetch unread count:", err);
-      setUnreadCount(0);
+      console.log("Unread count fetch failed:", err);
     }
   };
 
@@ -100,7 +94,7 @@ export default function Home() {
     setSearchQuery("");
     setShowSearch(false);
     fetchItems();
-    fetchUnreadCount(); // Refresh badge too
+    fetchUnreadCount();
   }, []);
 
   const handleSearch = () => {
@@ -129,9 +123,16 @@ export default function Home() {
         throw new Error(errorData.message || "Claim failed");
       }
 
+      // Immediately update badge (optimistic update)
+      setUnreadCount(prev => prev + 1);
+
+      // Refresh items list
       fetchItems(searchQuery);
-      fetchUnreadCount(); // Optional: refresh badge after claim
-      setErrorMessage("Claim submitted successfully!");
+
+      // Show message telling user to go to notifications
+      setErrorMessage(
+        "Claim submitted! Please go to notifications (bell icon) to provide your details and attach your ID photo."
+      );
     } catch (error) {
       setErrorMessage(error.message || "Could not claim item");
     }
@@ -139,6 +140,47 @@ export default function Home() {
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          padding: 12,
+          backgroundColor: '#f9f9f9',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+        }}
+      >
+        {item.ownerId?.profilePicture ? (
+          <Image
+            source={{ uri: item.ownerId.profilePicture }}
+            style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }}
+          />
+        ) : (
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: Colors.secondary,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 12,
+            }}
+          >
+            <Ionicons name="person" size={24} color="white" />
+          </View>
+        )}
+
+        <View>
+          <Text style={{ fontWeight: 'bold', fontSize: 16 }}>
+            {item.ownerId?.name || 'Unknown User'}
+          </Text>
+          <Text style={{ color: '#666', fontSize: 12 }}>
+            Posted {item.date ? new Date(item.date).toLocaleDateString() : 'recently'}
+          </Text>
+        </View>
+      </View>
+
       {item.imageUrl ? (
         <Image
           source={{
@@ -148,7 +190,6 @@ export default function Home() {
           }}
           style={styles.cardImage}
           resizeMode="cover"
-          onError={(e) => console.log("Image load failed:", item.imageUrl, e.nativeEvent.error)}
         />
       ) : (
         <View style={[styles.cardImage, { backgroundColor: "#eee", justifyContent: "center", alignItems: "center" }]}>
@@ -165,9 +206,6 @@ export default function Home() {
         </Text>
         <Text style={styles.location}>
           Location: {item.location || "Not specified"}
-        </Text>
-        <Text style={styles.date}>
-          {item.date ? new Date(item.date).toLocaleDateString() : "No date"}
         </Text>
 
         {item.status !== "resolved" && isLoggedIn && (
@@ -188,7 +226,7 @@ export default function Home() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-        {/* Header with notification bell + badge */}
+        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Lost Materials</Text>
 
@@ -197,7 +235,6 @@ export default function Home() {
               <Ionicons name="search" size={24} color="#535050" style={{ marginRight: 20 }} />
             </TouchableOpacity>
 
-            {/* Notification Bell with Badge */}
             <TouchableOpacity
               onPress={() => router.push("/notifications")}
               style={{ position: "relative" }}
@@ -215,7 +252,6 @@ export default function Home() {
                     height: 24,
                     justifyContent: "center",
                     alignItems: "center",
-                    paddingHorizontal: 4,
                   }}
                 >
                   <Text style={{ color: "white", fontSize: 12, fontWeight: "bold" }}>
@@ -227,7 +263,7 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Search Bar */}
+        {/* Search */}
         {showSearch && (
           <View style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "#fff" }}>
             <TextInput
@@ -242,12 +278,7 @@ export default function Home() {
             />
 
             <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 8 }}>
-              <Button
-                mode="text"
-                onPress={handleSearch}
-                textColor={Colors.secondary}
-                style={{ marginRight: 12 }}
-              >
+              <Button mode="text" onPress={handleSearch} textColor={Colors.secondary} style={{ marginRight: 12 }}>
                 Search
               </Button>
               <Button
@@ -296,13 +327,11 @@ export default function Home() {
           />
         )}
       </SafeAreaView>
-
-      {/* Snackbar */}
       <Snackbar
         visible={!!errorMessage}
         onDismiss={() => setErrorMessage("")}
-        duration={4000}
-        action={{ label: "OK", onPress: () => setErrorMessage("") }}
+        duration={6000} 
+        action={{ label: "Go to Notifications", onPress: () => router.push("/notifications") }}
         style={{ backgroundColor: errorMessage.includes("success") ? Colors.success : Colors.error }}
       >
         {errorMessage}
