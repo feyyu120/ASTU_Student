@@ -83,7 +83,7 @@ export default function Login() {
       // Auto-redirect after short delay
       setTimeout(() => {
         router.replace("/(tabs)/home");
-      }, 1800);
+      }, 200);
 
     } catch (error: any) {
       setErrorMessage(error.message || "Something went wrong. Please try again.");

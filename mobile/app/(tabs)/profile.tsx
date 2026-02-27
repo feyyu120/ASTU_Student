@@ -8,39 +8,42 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
-  RefreshControl,
   Modal,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Button, Snackbar, TextInput as PaperTextInput } from "react-native-paper";
 import * as SecureStore from "expo-secure-store";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import styles from "../styles/home.style"; // Reuse or adjust
-import Colors from "../constant/color"; // Reuse your color constants
-const API_BASE = "http://localhost:5000"; // ← CHANGE TO YOUR REAL IP
+import styles from "../styles/home.style"; // adjust if needed
+import Colors from "../constant/color";
+
+const API_BASE = "http://localhost:5000"; // ← change to real backend URL
 
 export default function Profile() {
   const [user, setUser] = useState(null);
+  const [profileImage, setProfileImage] = useState(null);
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Edit modal state
+  // Modal states
+  const [postedHistoryVisible, setPostedHistoryVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [editDescription, setEditDescription] = useState("");
   const [editCategory, setEditCategory] = useState("");
   const [editLocation, setEditLocation] = useState("");
-  const [editImage, setEditImage] = useState(null); // new image if changed
+  const [editImage, setEditImage] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
+
+  const router = useRouter();
 
   useEffect(() => {
     loadProfile();
@@ -48,9 +51,6 @@ export default function Profile() {
 
   const loadProfile = async () => {
     setIsLoading(true);
-    setErrorMessage("");
-    setItems([]);
-
     try {
       const token = await SecureStore.getItemAsync("authToken");
       const storedUser = await SecureStore.getItemAsync("user");
@@ -61,85 +61,109 @@ export default function Profile() {
       }
 
       setIsLoggedIn(true);
-      setUser(JSON.parse(storedUser));
+      const parsed = JSON.parse(storedUser);
+      setUser(parsed);
 
-      const response = await fetch(`${API_BASE}/api/items/my-items`, {
+      if (parsed?.profilePic) {
+        setProfileImage(
+          parsed.profilePic.startsWith("http")
+            ? parsed.profilePic
+            : `${API_BASE}${parsed.profilePic}`
+        );
+      }
+
+      const res = await fetch(`${API_BASE}/api/items/my-items`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.message || "Failed to load your items");
-      }
-
-      const data = await response.json();
-      console.log("My items loaded:", data);
+      if (!res.ok) throw new Error("Failed to load items");
+      const data = await res.json();
       setItems(data || []);
-    } catch (error) {
-      console.error("Profile load error:", error);
-      setErrorMessage(error.message || "Could not load your items");
+    } catch (err) {
+      console.error(err);
+      setErrorMessage("Could not load profile");
     } finally {
       setIsLoading(false);
-      setRefreshing(false);
     }
   };
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadProfile();
-  }, []);
+ const pickProfileImage = async () => {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== "granted") {
+    setErrorMessage("Gallery permission required");
+    return;
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 0.7,
+  });
+
+  if (result.canceled) return;
+
+  const uri = result.assets[0].uri;
+  setProfileImage(uri); // optimistic UI update
+
+  try {
+    const token = await SecureStore.getItemAsync("authToken");
+    if (!token) throw new Error("Not authenticated");
+
+    const formData = new FormData();
+    const filename = uri.split("/").pop() || `avatar-${Date.now()}.jpg`;
+
+    formData.append("avatar", {
+      uri,
+      name: filename,
+      type: "image/jpeg",
+    });
+
+    const response = await fetch(`${API_BASE}/api/users/profile-picture`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(`Server error ${response.status}: ${errText}`);
+    }
+
+    const data = await response.json();
+    console.log("Profile updated:", data);
+
+    // Update local user state + storage
+    setUser(data.user);
+    await SecureStore.setItemAsync("user", JSON.stringify(data.user));
+
+    setSuccessMessage("Profile picture updated");
+  } catch (err) {
+    console.error("Profile pic upload failed:", err);
+    setErrorMessage(err.message || "Could not update profile picture");
+    // Optional: revert preview
+    // setProfileImage(null);
+  }
+};
 
   const handleLogout = async () => {
     await SecureStore.deleteItemAsync("authToken");
     await SecureStore.deleteItemAsync("user");
-    setSuccessMessage("Logged out successfully");
-    setTimeout(() => router.replace("/login"), 1500);
+    setSuccessMessage("Logged out");
+    router.replace("/login");
   };
 
-  const handleDeleteItem = (itemId) => {
-    Alert.alert(
-      "Delete Item",
-      "Are you sure? This deletes the item and its image permanently.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const token = await SecureStore.getItemAsync("authToken");
-              const response = await fetch(`${API_BASE}/api/items/${itemId}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-              });
-
-              if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.message || "Delete failed");
-              }
-
-              setSuccessMessage("Item deleted");
-              loadProfile();
-            } catch (error) {
-              setErrorMessage(error.message || "Could not delete");
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // Open edit modal with pre-filled data
   const handleEditItem = (item) => {
     setEditingItem(item);
     setEditDescription(item.description || "");
     setEditCategory(item.category || "");
     setEditLocation(item.location || "");
-    setEditImage(null); // reset new image
+    setEditImage(null);
     setEditModalVisible(true);
   };
 
-  // Pick new image for edit
   const pickEditImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -151,7 +175,7 @@ export default function Profile() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.7,
+      quality: 0.5,
     });
 
     if (!result.canceled) {
@@ -159,15 +183,13 @@ export default function Profile() {
     }
   };
 
-  // Submit edit
   const handleSubmitEdit = async () => {
     if (!editDescription.trim() || !editCategory.trim() || !editLocation.trim()) {
-      setErrorMessage("All fields are required");
+      setErrorMessage("All fields required");
       return;
     }
 
     setEditLoading(true);
-
     try {
       const token = await SecureStore.getItemAsync("authToken");
       const formData = new FormData();
@@ -176,41 +198,57 @@ export default function Profile() {
       formData.append("location", editLocation);
 
       if (editImage) {
-        const filename = editImage.split("/").pop() || `edit-${Date.now()}.jpg`;
-        const fileType = filename.split(".").pop() || "jpg";
-
+        const filename = editImage.split("/").pop() || `item-${Date.now()}.jpg`;
         formData.append("image", {
           uri: editImage,
           name: filename,
-          type: `image/${fileType}`,
-        } as any);
+          type: "image/jpeg",
+        });
       }
 
-      const response = await fetch(`${API_BASE}/api/items/${editingItem._id}`, {
+      const res = await fetch(`${API_BASE}/api/items/${editingItem._id}`, {
         method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.message || "Edit failed");
-      }
-
-      setSuccessMessage("Item updated successfully");
+      if (!res.ok) throw new Error();
+      setSuccessMessage("Item updated");
       setEditModalVisible(false);
-      loadProfile(); // Refresh list
-    } catch (error) {
-      setErrorMessage(error.message || "Could not update item");
+      loadProfile(); 
+    } catch (err) {
+      setErrorMessage("Update failed");
     } finally {
       setEditLoading(false);
     }
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
+  const handleDeleteItem = (itemId) => {
+    Alert.alert("Delete Item", "This action cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const token = await SecureStore.getItemAsync("authToken");
+            const res = await fetch(`${API_BASE}/api/items/${itemId}`, {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error();
+            setSuccessMessage("Item deleted");
+            loadProfile();
+          } catch (err) {
+            setErrorMessage("Delete failed");
+          }
+        },
+      },
+    ]);
+  };
+
+  const renderPostedItem = ({ item }) => (
+    <View style={[styles.card, { marginBottom: 16 }]}>
       {item.imageUrl ? (
         <Image
           source={{ uri: item.imageUrl.startsWith("http") ? item.imageUrl : `${API_BASE}${item.imageUrl}` }}
@@ -225,35 +263,29 @@ export default function Profile() {
 
       <View style={styles.cardContent}>
         <Text style={styles.itemTitle}>
-          {item.type?.toUpperCase() || "ITEM"} - {item.category || "Unknown"}
+          {item.type?.toUpperCase() || "ITEM"} • {item.category || "?"}
         </Text>
-        <Text style={styles.description} numberOfLines={2}>
+        <Text style={styles.description} numberOfLines={3}>
           {item.description || "No description"}
         </Text>
-        <Text style={styles.location}>
-          Location: {item.location || "Not specified"}
-        </Text>
-        <Text style={styles.date}>
-          {item.date ? new Date(item.date).toLocaleDateString() : "No date"}
-        </Text>
+        <Text style={styles.location}>📍 {item.location || "—"}</Text>
 
-        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 12 }}>
+        <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
           <Button
             mode="outlined"
             icon="pencil"
             onPress={() => handleEditItem(item)}
             textColor={Colors.primary}
-            style={{ flex: 1, marginRight: 8, borderColor: Colors.primary }}
+            style={{ flex: 1 }}
           >
             Edit
           </Button>
-
           <Button
             mode="outlined"
             icon="delete"
             onPress={() => handleDeleteItem(item._id)}
             textColor="#d32f2f"
-            style={{ flex: 1, borderColor: "#d32f2f" }}
+            style={{ flex: 1 }}
           >
             Delete
           </Button>
@@ -262,163 +294,241 @@ export default function Profile() {
     </View>
   );
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 40 }}>
+        <Text style={{ fontSize: 18, textAlign: "center", marginBottom: 32, color: "#555" }}>
+          Please sign in to view your profile
+        </Text>
+        <Button mode="contained" buttonColor={Colors.primary} onPress={() => router.push("/login")}>
+          Sign In
+        </Button>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9fa" }}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Profile</Text>
+        <View style={{ backgroundColor: "#0d47a1", paddingTop: 60, paddingBottom: 40, alignItems: "center" }}>
+          <TouchableOpacity onPress={pickProfileImage}>
+            <View style={{ position: "relative" }}>
+              {profileImage ? (
+                <Image
+                  source={{ uri: profileImage }}
+                  style={{ width: 110, height: 110, borderRadius: 999, borderWidth: 4, borderColor: "white" }}
+                />
+              ) : (
+                <View
+                  style={{
+                    width: 110,
+                    height: 110,
+                    borderRadius: 999,
+                    backgroundColor: "#555",
+                    borderWidth: 4,
+                    borderColor: "white",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Ionicons name="person" size={64} color="white" />
+                </View>
+              )}
+
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: 4,
+                  right: 4,
+                  backgroundColor: "white",
+                  borderRadius: 20,
+                  padding: 6,
+                  borderWidth: 2,
+                  borderColor: "#0d47a1",
+                }}
+              >
+                <Ionicons name="camera" size={20} color="#0d47a1" />
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          <Text style={{ color: "white", fontSize: 26, fontWeight: "700", marginTop: 16 }}>
+            {user?.name || "User"}
+          </Text>
+
+          <Text style={{ color: "#d0d8ff", fontSize: 16, marginTop: 4 }}>
+            {user?.username ? `@${user.username}` : `@${user?.name?.toLowerCase().replace(/\s/g, "") || "user"}`}
+          </Text>
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginTop: 12,
+              backgroundColor: "rgba(255,255,255,0.22)",
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 999,
+            }}
+          >
+            <Ionicons name="mail-outline" size={18} color="white" style={{ marginRight: 8 }} />
+            <Text style={{ color: "white", fontSize: 15 }}>{user?.email || "—"}</Text>
+          </View>
         </View>
 
-        {isLoading ? (
-          <ActivityIndicator size="large" color="#16bd93" style={{ marginTop: 100 }} />
-        ) : !isLoggedIn ? (
-          <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
-            <Text style={{ fontSize: 18, color: "#666", marginBottom: 24, textAlign: "center" }}>
-              Please sign in to view your profile and posted items
-            </Text>
-            <Button
-              mode="contained"
-              onPress={() => router.push("/login")}
-              buttonColor="#16bd93"
-              textColor="white"
-              style={{ borderRadius: 12 }}
+        {/* Menu - only 3 items */}
+        <ScrollView style={{ flex: 1, backgroundColor: "white", marginTop: -24, borderTopLeftRadius: 32, borderTopRightRadius: 32 }}>
+          <View style={{ paddingTop: 16 }}>
+            <TouchableOpacity
+              onPress={() => setPostedHistoryVisible(true)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 18,
+                paddingHorizontal: 24,
+                borderBottomWidth: 1,
+                borderBottomColor: "#f0f0f0",
+              }}
             >
-              Sign In
-            </Button>
-          </View>
-        ) : (
-          <>
-            {/* User Info */}
-            <View style={{ padding: 20, backgroundColor: "white", marginBottom: 16 }}>
-              <Text style={{ fontSize: 22, fontWeight: "bold", color: "#333", marginBottom: 12 }}>
-                Hello, {user?.name || "User"}
-              </Text>
-              <Text style={{ fontSize: 16, color: "#555" }}>Email: {user?.email || "—"}</Text>
-              <Text style={{ fontSize: 16, color: "#555", marginTop: 4 }}>
-                Role: {user?.role || "Student"}
-              </Text>
+              <Ionicons name="list-outline" size={26} color="#444" style={{ marginRight: 20 }} />
+              <Text style={{ fontSize: 17, color: "#222", flex: 1 }}>Posted History</Text>
+              <Ionicons name="chevron-forward" size={22} color="#aaa" />
+            </TouchableOpacity>
 
-              <Button
-                mode="outlined"
-                icon="logout"
-                onPress={handleLogout}
-                textColor="#d32f2f"
-                style={{ marginTop: 24, borderColor: "#d32f2f" }}
-              >
-                Logout
-              </Button>
+            <TouchableOpacity
+              onPress={() => router.push("/support")}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 18,
+                paddingHorizontal: 24,
+                borderBottomWidth: 1,
+                borderBottomColor: "#f0f0f0",
+              }}
+            >
+              <Ionicons name="help-circle-outline" size={26} color="#444" style={{ marginRight: 20 }} />
+              <Text style={{ fontSize: 17, color: "#222", flex: 1 }}>Support</Text>
+              <Ionicons name="chevron-forward" size={22} color="#aaa" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 18,
+                paddingHorizontal: 24,
+              }}
+            >
+              <Ionicons name="log-out-outline" size={26} color="#d32f2f" style={{ marginRight: 20 }} />
+              <Text style={{ fontSize: 17, color: "#d32f2f", flex: 1 }}>Logout</Text>
+              <Ionicons name="chevron-forward" size={22} color="#aaa" />
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        {/* ─── Posted History Modal ─── */}
+        <Modal
+          visible={postedHistoryVisible}
+          animationType="slide"
+          onRequestClose={() => setPostedHistoryVisible(false)}
+        >
+          <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9fa" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", padding: 16, backgroundColor: "white", borderBottomWidth: 1, borderBottomColor: "#eee" }}>
+              <TouchableOpacity onPress={() => setPostedHistoryVisible(false)} style={{ paddingRight: 16 }}>
+                <Ionicons name="arrow-back" size={28} color="#333" />
+              </TouchableOpacity>
+              <Text style={{ fontSize: 20, fontWeight: "700", color: "#333" }}>Posted History</Text>
             </View>
 
-            {/* My Items */}
             <FlatList
               data={items}
               keyExtractor={(item) => item._id}
-              renderItem={renderItem}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  colors={["#16bd93"]}
-                  tintColor="#16bd93"
-                />
-              }
+              renderItem={renderPostedItem}
               ListEmptyComponent={
-                <Text style={{ textAlign: "center", marginTop: 60, color: "#666", fontSize: 16 }}>
-                  You haven't posted any items yet.
-                </Text>
-              }
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
-            />
-          </>
-        )}
-
-        {/* Edit Modal */}
-        <Modal
-          visible={editModalVisible}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setEditModalVisible(false)}
-        >
-          <SafeAreaProvider>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-              style={{ flex: 1 }}
-            >
-              <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center" }}>
-                <View style={{ backgroundColor: "white", margin: 20, borderRadius: 16, padding: 24, maxHeight: "90%" }}>
-                  <Text style={{ fontSize: 22, fontWeight: "bold", color: "#333", marginBottom: 20 }}>
-                    Edit Item
+                <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 50 }}>
+                  <Text style={{ fontSize: 16, color: "#777", textAlign: "center" }}>
+                    You haven't posted any items yet.
                   </Text>
+                </View>
+              }
+              contentContainerStyle={{ padding: 16 }}
+            />
+          </SafeAreaView>
+        </Modal>
+
+      
+        <Modal visible={editModalVisible} animationType="slide" transparent>
+          <SafeAreaProvider>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+              <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center" }}>
+                <View style={{ backgroundColor: "white", margin: 20, borderRadius: 16, padding: 34, maxHeight: "88%" }}>
+                  <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 20 }}>Edit Item</Text>
 
                   <ScrollView>
-                    {/* Category */}
-                    <Text style={{ fontSize: 16, color: "#555", marginBottom: 8 }}>Category</Text>
+                    <Text style={{ fontSize: 16, color: "#555", marginBottom: 6 }}>Category</Text>
                     <PaperTextInput
                       value={editCategory}
                       onChangeText={setEditCategory}
                       mode="outlined"
-                      outlineStyle={{ borderRadius: 12 }}
                       style={{ marginBottom: 16 }}
                     />
 
-                    {/* Location */}
-                    <Text style={{ fontSize: 16, color: "#555", marginBottom: 8 }}>Location</Text>
+                    <Text style={{ fontSize: 16, color: "#555", marginBottom: 6 }}>Location</Text>
                     <PaperTextInput
                       value={editLocation}
                       onChangeText={setEditLocation}
                       mode="outlined"
-                      outlineStyle={{ borderRadius: 12 }}
                       style={{ marginBottom: 16 }}
                     />
 
-                    {/* Description */}
-                    <Text style={{ fontSize: 16, color: "#555", marginBottom: 8 }}>Description</Text>
+                    <Text style={{ fontSize: 16, color: "#555", marginBottom: 6 }}>Description</Text>
                     <PaperTextInput
                       value={editDescription}
                       onChangeText={setEditDescription}
                       mode="outlined"
                       multiline
                       numberOfLines={5}
-                      outlineStyle={{ borderRadius: 12 }}
-                      style={{ marginBottom: 24, textAlignVertical: "top" }}
+                      style={{ marginBottom: 20, minHeight: 100 }}
                     />
 
-                    {/* Image */}
-                    <Text style={{ fontSize: 16, color: "#555", marginBottom: 8 }}>Image</Text>
+                    <Text style={{ fontSize: 16, color: "#555", marginBottom: 6 }}>Image</Text>
                     <TouchableOpacity
                       onPress={pickEditImage}
                       style={{
                         borderWidth: 2,
-                        borderColor: "#16bd93",
+                        borderColor: Colors.primary,
                         borderStyle: "dashed",
                         borderRadius: 12,
                         padding: 16,
                         alignItems: "center",
-                        marginBottom: 24,
                       }}
                     >
                       {editImage || editingItem?.imageUrl ? (
                         <Image
-                          source={{ uri: editImage || editingItem.imageUrl }}
-                          style={{ width: "100%", height: 180, borderRadius: 8 }}
+                          source={{ uri: editImage || `${API_BASE}${editingItem?.imageUrl}` }}
+                          style={{ width: "100%", height: 160, borderRadius: 8 }}
                           resizeMode="cover"
                         />
                       ) : (
                         <>
-                          <Ionicons name="image-outline" size={48} color="#16bd93" />
-                          <Text style={{ color: "#16bd93", marginTop: 8 }}>Tap to change image</Text>
+                          <Ionicons name="image-outline" size={48} color={Colors.primary} />
+                          <Text style={{ color: Colors.primary, marginTop: 8 }}>Change image</Text>
                         </>
                       )}
                     </TouchableOpacity>
                   </ScrollView>
 
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 16 }}>
-                    <Button
-                      mode="outlined"
-                      onPress={() => setEditModalVisible(false)}
-                      textColor="#757575"
-                      style={{ flex: 1, marginRight: 8 }}
-                    >
+                  <View style={{ flexDirection: "row", marginTop: 24, gap: 12 }}>
+                    <Button mode="outlined" onPress={() => setEditModalVisible(false)} style={{ flex: 1 }}>
                       Cancel
                     </Button>
                     <Button
@@ -426,10 +536,10 @@ export default function Profile() {
                       onPress={handleSubmitEdit}
                       loading={editLoading}
                       disabled={editLoading}
-                      buttonColor="#16bd93"
+                      buttonColor={Colors.primary}
                       style={{ flex: 1 }}
                     >
-                      {editLoading ? "Saving..." : "Save Changes"}
+                      Save
                     </Button>
                   </View>
                 </View>
@@ -438,12 +548,11 @@ export default function Profile() {
           </SafeAreaProvider>
         </Modal>
 
-        {/* Snackbars */}
+        {/* Feedback messages */}
         <Snackbar
           visible={!!errorMessage}
           onDismiss={() => setErrorMessage("")}
           duration={4000}
-          action={{ label: "OK", onPress: () => setErrorMessage("") }}
           style={{ backgroundColor: "#d32f2f" }}
         >
           {errorMessage}
@@ -452,8 +561,8 @@ export default function Profile() {
         <Snackbar
           visible={!!successMessage}
           onDismiss={() => setSuccessMessage("")}
-          duration={2500}
-          style={{ backgroundColor: "#16bd93" }}
+          duration={2800}
+          style={{ backgroundColor: Colors.primary }}
         >
           {successMessage}
         </Snackbar>

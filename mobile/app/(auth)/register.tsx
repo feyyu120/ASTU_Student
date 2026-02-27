@@ -96,7 +96,7 @@ export default function Register() {
       // Auto-redirect after delay
       setTimeout(() => {
         router.replace("/login");
-      }, 2500);
+      }, 200);
 
     } catch (error: any) {
       setErrorMessage(error.message || "Something went wrong. Please try again.");

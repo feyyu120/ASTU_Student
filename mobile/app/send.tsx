@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
- 
   TouchableOpacity,
   Image,
   ScrollView,
@@ -15,14 +14,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { TextInput, Button } from 'react-native-paper';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Colors from './constant/color';
+import { useRouter } from 'expo-router';
 
-const API_BASE = 'http://localhost:5000'; 
+const API_BASE = 'http://localhost:5000'; // ← CHANGE TO YOUR COMPUTER'S REAL IP
 
 export default function SendDetails() {
-  const [replyText, setReplyText] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [details, setDetails] = useState('');
+  const [image, setImage] = useState(null);
   const [sending, setSending] = useState(false);
-
+const router = useRouter()
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -31,13 +31,18 @@ export default function SendDetails() {
     });
 
     if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
+      setImage(result.assets[0].uri);
     }
   };
 
-  const sendDetails = async () => {
-    if (!replyText.trim() && !selectedImage) {
-      Alert.alert('Required', 'Please add details or attach photo');
+  const submitDetails = async () => {
+    if (!details.trim()) {
+      Alert.alert('Missing Details', 'Please write your full name, phone, and any extra info.');
+      return;
+    }
+
+    if (!image) {
+      Alert.alert('Missing Photo', 'Please attach a clear photo of your ID or proof.');
       return;
     }
 
@@ -45,24 +50,27 @@ export default function SendDetails() {
 
     try {
       const token = await SecureStore.getItemAsync('authToken');
+      if (!token) {
+        Alert.alert('Login Required', 'Please log in again.');
+        router.replace('/login');
+        return;
+      }
+
       const formData = new FormData();
 
-      if (replyText.trim()) {
-        formData.append('content', replyText.trim());
-      }
+      // Add text details
+      formData.append('content', details.trim());
 
-      if (selectedImage) {
-        const uriParts = selectedImage.split('.');
-        const fileType = uriParts[uriParts.length - 1];
+      // Add photo
+      const uriParts = image.split('.');
+      const type = uriParts[uriParts.length - 1];
+      formData.append('image', {
+        uri: image,
+        name: `id-proof.${type}`,
+        type: `image/${type}`,
+      });
 
-        formData.append('image', {
-          uri: selectedImage,
-          name: `id.${fileType}`,
-          type: `image/${fileType}`,
-        });
-      }
-
-      const res = await fetch(`${API_BASE}/api/notifications/reply`, {
+      const res = await fetch(`${API_BASE}/api/claimDetails/reply`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -70,16 +78,16 @@ export default function SendDetails() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || 'Failed');
+        throw new Error(errData.message || 'Failed to send');
       }
 
-      setReplyText('');
-      setSelectedImage(null);
-      Alert.alert('Success', 'Details & ID sent to admin!');
-      router.back();
+      Alert.alert('Success', 'Your details and ID photo have been sent to admin!');
+      router.back(); 
+      setImage(null)
+      setDetails("")
     } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Failed to send. Try again.');
+      console.error('Submit error:', err);
+      Alert.alert('Error', err.message || 'Failed to send. Check connection and try again.');
     } finally {
       setSending(false);
     }
@@ -88,34 +96,54 @@ export default function SendDetails() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
-
-
+        
         <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
           <View style={{ padding: 20 }}>
+            {/* Instruction Text */}
             <Text style={{
               fontSize: 16,
-              color: '#555',
-              marginBottom: 20,
+              color: '#444',
               lineHeight: 24,
+              marginBottom: 24,
             }}>
-              Please provide your full name, phone number, and any other details admin might need. Attach a clear photo of your student ID.
+              Please provide your full name, phone number, and any other relevant information.  
+              Attach a clear photo of your ID card or student ID (both are required).
             </Text>
 
+            {/* Details Input */}
+            <Text style={{
+              fontSize: 16,
+              fontWeight: '600',
+              color: '#333',
+              marginBottom: 8,
+            }}>
+              Your Details (required)
+            </Text>
             <TextInput
               mode="outlined"
-              placeholder="Full name, phone, additional info..."
-              value={replyText}
-              onChangeText={setReplyText}
+              placeholder="Full name, phone number, additional info..."
+              value={details}
+              onChangeText={setDetails}
               multiline
-              numberOfLines={6}
+              numberOfLines={5}
               style={{
                 backgroundColor: 'white',
-                marginBottom: 20,
+                marginBottom: 24,
                 borderRadius: 12,
               }}
               outlineStyle={{ borderRadius: 12 }}
-              contentStyle={{paddingTop:10}}
+              error={!details.trim() && sending} // Optional red border when empty on submit attempt
             />
+
+            {/* Photo Upload */}
+            <Text style={{
+              fontSize: 16,
+              fontWeight: '600',
+              color: '#333',
+              marginBottom: 8,
+            }}>
+              Attach ID Photo (required)
+            </Text>
 
             <TouchableOpacity
               onPress={pickImage}
@@ -125,7 +153,9 @@ export default function SendDetails() {
                 padding: 16,
                 backgroundColor: '#f0f8ff',
                 borderRadius: 12,
-                marginBottom: 20,
+                marginBottom: 16,
+                borderWidth: 1,
+                borderColor: image ? Colors.secondary : '#ddd',
               }}
             >
               <Ionicons name="image-outline" size={28} color={Colors.secondary} />
@@ -135,44 +165,56 @@ export default function SendDetails() {
                 fontSize: 16,
                 fontWeight: '600',
               }}>
-                Attach ID Photo
+                {image ? 'Change Photo' : 'Tap to Select ID Photo'}
               </Text>
             </TouchableOpacity>
 
-            {selectedImage && (
-              <View style={{ marginBottom: 20, position: 'relative' }}>
+            {/* Preview Selected Image */}
+            {image && (
+              <View style={{ marginBottom: 24, position: 'relative' }}>
                 <Image
-                  source={{ uri: selectedImage }}
-                  style={{ width: '100%', height: 200, borderRadius: 12 }}
+                  source={{ uri: image }}
+                  style={{ width: '100%', height: 220, borderRadius: 12 }}
                   resizeMode="contain"
                 />
                 <TouchableOpacity
-                  onPress={() => setSelectedImage(null)}
+                  onPress={() => setImage(null)}
                   style={{
                     position: 'absolute',
-                    top: 8,
-                    right: 8,
+                    top: 12,
+                    right: 12,
                     backgroundColor: 'rgba(0,0,0,0.6)',
                     borderRadius: 20,
-                    padding: 6,
+                    padding: 8,
                   }}
                 >
-                  <Ionicons name="close" size={20} color="white" />
+                  <Ionicons name="close" size={24} color="white" />
                 </TouchableOpacity>
               </View>
             )}
 
+            {/* Submit Button */}
             <Button
               mode="contained"
-              onPress={sendDetails}
+              onPress={submitDetails}
               loading={sending}
-              disabled={sending || (!replyText.trim() && !selectedImage)}
+              disabled={sending || !details.trim() || !image}
               buttonColor={Colors.secondary}
               style={{ borderRadius: 12, paddingVertical: 4 }}
-              labelStyle={{ fontSize: 16, fontWeight: '600' }}
+              labelStyle={{ fontSize: 16, fontWeight: '700' }}
             >
-              Send to Admin
+              {sending ? 'Sending...' : 'Send Details & ID to Admin'}
             </Button>
+
+            {/* Helper Text */}
+            <Text style={{
+              fontSize: 13,
+              color: '#777',
+              textAlign: 'center',
+              marginTop: 16,
+            }}>
+              Both details and photo are required. Admin will review your claim after this.
+            </Text>
           </View>
         </ScrollView>
       </SafeAreaView>
