@@ -1,44 +1,36 @@
-// src/utils/notifications.js
+
 import admin from 'firebase-admin';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import Notification from '../models/notification.js';
 
-// ESM equivalent of __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-let serviceAccount;
-try {
-  const filePath = path.join(__dirname, '../../.firebase/service-account.json');
-  const raw = await fs.readFile(filePath, 'utf8');
-  serviceAccount = JSON.parse(raw);
-} catch (err) {
-  console.error('Failed to load service account JSON:', err.message);
-  console.error('Checked path:', filePath);
-  process.exit(1);
-}
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-console.log('Firebase Admin initialized successfully');
-console.log('Project ID:', serviceAccount.project_id);
-
-export const sendNotification = async (deviceToken, title, body) => {
-  if (!deviceToken) {
-    console.log('No device token → skipping notification');
-    return;
-  }
-
+const sendNotification = async (deviceToken, title, body, userId, relatedItemId = null) => {
   try {
-    await admin.messaging().send({
-      token: deviceToken,
-      notification: { title, body }
+    // Save to DB directly
+    const notification = new Notification({
+      userId,
+      title,
+      body,
+      type: 'claim_update',
+      relatedItemId,
+      read: false,
+      createdAt: new Date(),
     });
-    console.log('Notification sent successfully');
+    await notification.save();
+
+    console.log(`Notification saved for user ${userId}`);
+
+    // Send push
+    if (deviceToken) {
+      const message = {
+        token: deviceToken,
+        notification: { title, body },
+      };
+      await admin.messaging().send(message);
+      console.log(`Push sent`);
+    }
   } catch (error) {
-    console.error('Error sending FCM notification:', error.message);
+    console.error('Notification error:', error);
   }
 };
+   
+
+export default sendNotification;

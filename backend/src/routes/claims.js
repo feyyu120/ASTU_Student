@@ -3,7 +3,7 @@ import Claim from "../models/claim.js";
 import Item from "../models/item.js";
 import User from "../models/user.js";
 import Protect from "../middleware/auth.js";
-import { sendNotification } from "../utils/notifications.js";
+import sendNotification from "../utils/notifications.js";
 
 const claimsRouter = express.Router();
 
@@ -46,7 +46,6 @@ claimsRouter.post("/:itemId", Protect(['student']), async (req, res) => {
   }
 });
 
-// 2. Get pending claims (admin only)
 claimsRouter.get("/pending", Protect(['admin']), async (req, res) => {
   try {
     const claims = await Claim.find({ status: 'pending' })
@@ -63,6 +62,7 @@ claimsRouter.get("/pending", Protect(['admin']), async (req, res) => {
 });
 
 
+
 claimsRouter.put("/:claimId", Protect(['admin']), async (req, res) => {
   try {
     const { status } = req.body;
@@ -72,19 +72,16 @@ claimsRouter.put("/:claimId", Protect(['admin']), async (req, res) => {
     }
 
     const claim = await Claim.findById(req.params.claimId);
-    if (!claim) {
-      return res.status(404).json({ message: "Claim not found" });
-    }
+    if (!claim) return res.status(404).json({ message: "Claim not found" });
 
     if (claim.status !== 'pending') {
-      return res.status(400).json({ message: `This claim has already been ${claim.status}` });
+      return res.status(400).json({ message: `Claim already ${claim.status}` });
     }
 
     claim.status = status;
     claim.processedAt = new Date();
     await claim.save();
 
-    // Update item
     const item = await Item.findById(claim.itemId);
     if (item) {
       item.status = status === 'approved' ? 'resolved' : 'pending';
@@ -92,14 +89,18 @@ claimsRouter.put("/:claimId", Protect(['admin']), async (req, res) => {
     }
 
     const claimant = await User.findById(claim.claimantId);
-    if (claimant?.deviceToken) {
-      try {
-        const title = `Your claim has been ${status}`;
-        const body = `Claim for "${item?.description || 'item'}" was ${status} by admin.`;
-        await sendNotification(claimant.deviceToken, title, body);
-      } catch (notifyErr) {
-        console.error("Notification failed:", notifyErr);
-      }
+    if (claimant) {
+      console.log(`Sending notification to user: ${claimant._id}`); 
+
+      await sendNotification(
+        claimant.deviceToken,
+        `Your claim has been ${status}`,
+        `Claim for "${item?.description || 'item'}" was ${status}.`,
+        claimant._id,
+        item?._id
+      );
+    } else {
+      console.log('No claimant found for claim:', claim._id);
     }
 
     res.json({ 
