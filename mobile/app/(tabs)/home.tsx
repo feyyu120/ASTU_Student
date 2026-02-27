@@ -6,20 +6,19 @@ import {
   Image,
   TouchableOpacity,
   SafeAreaView,
-
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Button,  TextInput, Snackbar } from "react-native-paper";
+import { Button, TextInput, Snackbar } from "react-native-paper";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import styles from "../styles/home.style";
-import Colors from "../constant/color"; 
+import Colors from "../constant/color";
 
 // Use your computer's real IP (not localhost)
-const API_BASE = "http://localhost:5000"; // ← CHANGE THIS
+const API_BASE = "http://localhost:5000"; // ← CHANGE THIS TO YOUR REAL IP
 
 export default function Home() {
   const [items, setItems] = useState([]);
@@ -29,10 +28,12 @@ export default function Home() {
   const [showSearch, setShowSearch] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0); // ← New: unread notifications badge
 
   useEffect(() => {
     checkAuth();
     fetchItems();
+    fetchUnreadCount(); // ← New: load badge on mount
   }, []);
 
   const checkAuth = async () => {
@@ -40,44 +41,67 @@ export default function Home() {
     setIsLoggedIn(!!token);
   };
 
- const fetchItems = async (query = "") => {
-  setIsLoading(true);
-  setErrorMessage("");
+  const fetchItems = async (query = "") => {
+    setIsLoading(true);
+    setErrorMessage("");
 
-  try {
-    let url = `${API_BASE}/api/items/search`;
-    if (query.trim()) {
-      url += `?q=${encodeURIComponent(query.trim())}`; 
+    try {
+      let url = `${API_BASE}/api/items/search`;
+      if (query.trim()) {
+        url += `?q=${encodeURIComponent(query.trim())}`;
+      }
+
+      const token = await SecureStore.getItemAsync("authToken");
+      const response = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      setItems(data);
+    } catch (error) {
+      console.error("Fetch items error:", error);
+      setErrorMessage(error.message || "Could not load items");
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
     }
+  };
 
-    const token = await SecureStore.getItemAsync("authToken");
-    const response = await fetch(url, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+  // New: Fetch unread notification count
+  const fetchUnreadCount = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      if (!token) {
+        setUnreadCount(0);
+        return;
+      }
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
+      const res = await fetch(`${API_BASE}/api/notifications/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch (err) {
+      console.log("Failed to fetch unread count:", err);
+      setUnreadCount(0);
     }
+  };
 
-    const data = await response.json();
-    console.log("Fetched items:", data); 
-    setItems(data);
-  } catch (error) {
-    console.error("Fetch error:", error);
-    setErrorMessage(error.message || "Could not load items");
-  } finally {
-    setIsLoading(false);
-    setRefreshing(false);
-  }
-};
-
- const onRefresh = useCallback(() => {
-  setRefreshing(true);
-  setSearchQuery("");      
-  setShowSearch(false);   
-  fetchItems();  
-}, []);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setSearchQuery("");
+    setShowSearch(false);
+    fetchItems();
+    fetchUnreadCount(); // Refresh badge too
+  }, []);
 
   const handleSearch = () => {
     fetchItems(searchQuery.trim());
@@ -106,6 +130,7 @@ export default function Home() {
       }
 
       fetchItems(searchQuery);
+      fetchUnreadCount(); // Optional: refresh badge after claim
       setErrorMessage("Claim submitted successfully!");
     } catch (error) {
       setErrorMessage(error.message || "Could not claim item");
@@ -163,7 +188,7 @@ export default function Home() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-      
+        {/* Header with notification bell + badge */}
         <View style={styles.header}>
           <Text style={styles.title}>Lost Materials</Text>
 
@@ -172,13 +197,37 @@ export default function Home() {
               <Ionicons name="search" size={24} color="#535050" style={{ marginRight: 20 }} />
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => router.push("/notifications")}>
+            {/* Notification Bell with Badge */}
+            <TouchableOpacity
+              onPress={() => router.push("/notifications")}
+              style={{ position: "relative" }}
+            >
               <Ionicons name="notifications-outline" size={24} color="#535050" />
+              {unreadCount > 0 && (
+                <View
+                  style={{
+                    position: "absolute",
+                    right: -8,
+                    top: -8,
+                    backgroundColor: "red",
+                    borderRadius: 12,
+                    minWidth: 24,
+                    height: 24,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    paddingHorizontal: 4,
+                  }}
+                >
+                  <Text style={{ color: "white", fontSize: 12, fontWeight: "bold" }}>
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
 
-        
+        {/* Search Bar */}
         {showSearch && (
           <View style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "#fff" }}>
             <TextInput
@@ -216,7 +265,7 @@ export default function Home() {
           </View>
         )}
 
-        
+        {/* Items List */}
         <FlatList
           data={items}
           keyExtractor={(item) => item._id || String(Math.random())}
@@ -248,7 +297,7 @@ export default function Home() {
         )}
       </SafeAreaView>
 
-    
+      {/* Snackbar */}
       <Snackbar
         visible={!!errorMessage}
         onDismiss={() => setErrorMessage("")}

@@ -29,6 +29,7 @@ function AnimatedTabIcon({ focused, color, size, name }) {
 export default function Layout() {
     const insets = useSafeAreaInsets();
   return (
+    <>
    <Tabs screenOptions={{
           contentStyle: {
           paddingTop: Platform.select({
@@ -53,6 +54,7 @@ export default function Layout() {
   }}} />
 
    </Tabs>
+    </>
 )
 
 }

@@ -120,11 +120,7 @@ export default function Register() {
           keyboardDismissMode="interactive"
         >
           <View style={styles.container}>
-            <Image
-              source={require("../../assets/images/delivrery2.png")}
-              style={styles.image}
-              resizeMode="contain"
-            />
+          
 
             <View style={styles.form}>
               <TypeAnimation

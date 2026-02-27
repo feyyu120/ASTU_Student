@@ -107,11 +107,6 @@ export default function Login() {
           keyboardDismissMode="interactive"
         >
           <View style={styles.container}>
-            <Image
-              source={require("../../assets/images/delivery.png")}
-              style={styles.image}
-              resizeMode="contain"
-            />
 
             <View style={styles.form}>
               <TypeAnimation

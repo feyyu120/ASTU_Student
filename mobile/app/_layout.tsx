@@ -3,6 +3,7 @@ import { StatusBar,Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Provider } from "react-native-paper";
 
+
 export default function RootLayout() {
       const insets = useSafeAreaInsets();
 
