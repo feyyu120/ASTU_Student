@@ -98,28 +98,29 @@ itemsRouter.patch("/:id", Protect(), upload.single("image"), async (req, res) =>
 });
 
 
+
 itemsRouter.get("/search", async (req, res) => {
   try {
-    const { q } = req.query; 
-
+    const { q } = req.query;
     let query = {};
 
     if (q?.trim()) {
-      const words = q.trim().split(/\s+/); 
-      const regex = new RegExp(words.join("|"), "i"); 
-
+      const words = q.trim().split(/\s+/);
+      const regex = new RegExp(words.join("|"), "i");
       query.$or = [
         { category: { $regex: regex } },
         { location: { $regex: regex } },
-        { description: { $regex: regex } }, 
+        { description: { $regex: regex } },
       ];
     }
 
     const items = await Item.find(query)
+      .populate({
+        path: 'ownerId',
+        select: 'name profilePicture'   
+      })
       .sort({ date: -1 })
       .limit(50);
-
-    console.log(`Search → query: ${q || "(empty)"}, found: ${items.length} items`);
 
     res.status(200).json(items);
   } catch (error) {
@@ -127,7 +128,6 @@ itemsRouter.get("/search", async (req, res) => {
     res.status(500).json({ message: "Server error during search" });
   }
 });
-
 
 itemsRouter.get("/my-items", Protect(), async (req, res) => {
   try {

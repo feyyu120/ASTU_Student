@@ -7,18 +7,23 @@ import sendNotification from "../utils/notifications.js";
 
 const claimsRouter = express.Router();
 
+// 1. User: Submit a claim for an item
 claimsRouter.post("/:itemId", Protect(['student']), async (req, res) => {
   try {
-    const item = await Item.findById(req.params.itemId);
+    const itemId = req.params.itemId;
+    const claimantId = req.user.id;
+
+    const item = await Item.findById(itemId);
     if (!item) return res.status(404).json({ message: "Item not found" });
+
     if (item.status !== 'pending') {
       return res.status(400).json({ message: "This item is no longer available for claiming" });
     }
 
-   
+    // Prevent duplicate pending claims
     const existing = await Claim.findOne({
-      itemId: req.params.itemId,
-      claimantId: req.user.id,
+      itemId,
+      claimantId,
       status: 'pending'
     });
     if (existing) {
@@ -26,18 +31,51 @@ claimsRouter.post("/:itemId", Protect(['student']), async (req, res) => {
     }
 
     const claim = new Claim({
-      itemId: req.params.itemId,
-      claimantId: req.user.id,
+      itemId,
+      claimantId,
       status: 'pending',
       date: new Date(),
     });
 
     await claim.save();
 
-    await Item.findByIdAndUpdate(req.params.itemId, { status: 'claimed' });
+    // Update item status to claimed (or keep pending – your choice)
+    await Item.findByIdAndUpdate(itemId, { status: 'claimed' });
+
+    // Notify the claimant (confirmation)
+    const claimant = await User.findById(claimantId);
+    if (claimant?.deviceToken) {
+      await sendNotification(
+        claimant.deviceToken,
+        "Claim Submitted – Action Required",
+        "Your claim has been submitted. Please check notifications to provide your details and attach your ID photo.",
+        claimant._id,
+        'claim_submitted',
+        itemId
+      );
+      console.log(`Confirmation push sent to claimant ${claimantId}`);
+    }
+
+    // Notify all admins
+    const admins = await User.find({ role: 'admin' });
+    const adminTokens = admins
+      .map(admin => admin.deviceToken)
+      .filter(Boolean);
+
+    if (adminTokens.length > 0) {
+      await sendNotification(
+        adminTokens, // array of tokens – sendNotification should handle multicast
+        "New Claim Request",
+        `${req.user.name} has claimed item: ${item.description.slice(0, 60)}...`,
+        null, // no specific userId (admins group)
+        'claim_request',
+        itemId
+      );
+      console.log(`New claim alert sent to ${adminTokens.length} admins`);
+    }
 
     res.status(201).json({ 
-      message: "Claim submitted successfully",
+      message: "Claim submitted successfully. Check notifications to upload your ID photo.",
       claimId: claim._id 
     });
   } catch (error) {
@@ -46,11 +84,12 @@ claimsRouter.post("/:itemId", Protect(['student']), async (req, res) => {
   }
 });
 
+// 2. Admin: Get all pending claims
 claimsRouter.get("/pending", Protect(['admin']), async (req, res) => {
   try {
     const claims = await Claim.find({ status: 'pending' })
       .populate('itemId', 'description category location imageUrl type')
-      .populate('claimantId', 'name email')
+      .populate('claimantId', 'name email profilePicture')
       .sort({ date: -1 })
       .lean();
 
@@ -61,11 +100,10 @@ claimsRouter.get("/pending", Protect(['admin']), async (req, res) => {
   }
 });
 
-
-
+// 3. Admin: Approve or Reject a claim
 claimsRouter.put("/:claimId", Protect(['admin']), async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status } = req.body; // 'approved' or 'rejected'
 
     if (!['approved', 'rejected'].includes(status)) {
       return res.status(400).json({ message: "Invalid status. Must be 'approved' or 'rejected'" });
@@ -80,27 +118,34 @@ claimsRouter.put("/:claimId", Protect(['admin']), async (req, res) => {
 
     claim.status = status;
     claim.processedAt = new Date();
+    claim.processedBy = req.user.id; // optional: track who processed it
     await claim.save();
 
     const item = await Item.findById(claim.itemId);
     if (item) {
-      item.status = status === 'approved' ? 'resolved' : 'pending';
+      if (status === 'approved') {
+        item.status = 'resolved';
+        // Optional: delete item after approval (uncomment if needed)
+        // await Item.deleteOne({ _id: item._id });
+        // console.log(`Item ${item._id} deleted after approval`);
+      } else {
+        item.status = 'pending'; // back to available if rejected
+      }
       await item.save();
     }
 
+    // Notify the claimant about the decision
     const claimant = await User.findById(claim.claimantId);
-    if (claimant) {
-      console.log(`Sending notification to user: ${claimant._id}`); 
-
+    if (claimant?.deviceToken) {
       await sendNotification(
         claimant.deviceToken,
-        `Your claim has been ${status}`,
-        `Claim for "${item?.description || 'item'}" was ${status}.`,
+        `Claim ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        `Your claim for "${item?.description || 'the item'}" was ${status} by admin.`,
         claimant._id,
-        item?._id
+        status === 'approved' ? 'claim_approved' : 'claim_rejected',
+        claim.itemId
       );
-    } else {
-      console.log('No claimant found for claim:', claim._id);
+      console.log(`Decision push sent to claimant ${claim.claimantId} – ${status}`);
     }
 
     res.json({ 

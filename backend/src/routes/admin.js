@@ -11,18 +11,19 @@ adminRouter.get("/stats", Protect(['admin']), async (req, res) => {
     const totalUsers      = await User.countDocuments();
     const totalItems      = await Item.countDocuments();
     const pendingClaims   = await Claim.countDocuments({ status: 'pending' });
-    const resolvedItems   = await Item.countDocuments({ status: 'resolved' });
-
+  
     const totalLost       = await Item.countDocuments({ type: 'lost' });
     const totalFound      = await Item.countDocuments({ type: 'found' });
     const totalClaimed    = await Item.countDocuments({ status: 'claimed' });
+    const approvedClaims = await Claim.countDocuments({ status: 'approved' });
+    const rejectedClaims = await Claim.countDocuments({ status: 'rejected' });
 
     res.status(200).json({
       totalUsers,
       totalItems,
       pendingClaims,
-      resolvedItems,
-
+approvedClaims,
+      rejectedClaims,
       totalLost,
       totalFound,
       totalClaimed
