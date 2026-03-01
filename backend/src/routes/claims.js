@@ -125,9 +125,6 @@ claimsRouter.put("/:claimId", Protect(['admin']), async (req, res) => {
     if (item) {
       if (status === 'approved') {
         item.status = 'resolved';
-        // Optional: delete item after approval (uncomment if needed)
-        // await Item.deleteOne({ _id: item._id });
-        // console.log(`Item ${item._id} deleted after approval`);
       } else {
         item.status = 'pending'; // back to available if rejected
       }
