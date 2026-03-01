@@ -67,9 +67,10 @@ export default function RootLayout() {
 
       if (expoPushToken) {
         try {
+
           const authToken = await SecureStore.getItemAsync("authToken");
           if (authToken) {
-            const response = await fetch("http://localhost:5000/api/auth/update-device-token", {
+            const response = await fetch("https://astu-student-api-1f9k.onrender.com/api/auth/update-device-token", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",

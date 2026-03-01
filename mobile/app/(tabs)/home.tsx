@@ -19,7 +19,7 @@ import * as Notifications from "expo-notifications"; // ← ONLY this import is 
 import styles from "../styles/home.style";
 import Colors from "../constant/color";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE =process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';
 
 export default function Home() {
   const [items, setItems] = useState([]);
@@ -35,7 +35,7 @@ export default function Home() {
 useEffect(() => {
   const subscription = AppState.addEventListener('change', nextAppState => {
     if (nextAppState === 'active') {
-      registerForPushNotificationsAsync(); // re-register token on foreground
+     
     }
   });
 

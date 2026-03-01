@@ -24,7 +24,6 @@ export default function Support() {
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const insets = useSafeAreaInsets();
 
-  // Replace these with your REAL contact links
   const contacts = {
     telegram: "https://t.me/feyyu2", 
     whatsapp: "https://wa.me/+251950471868", 

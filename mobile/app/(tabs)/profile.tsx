@@ -22,7 +22,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import styles from "../styles/home.style"; // adjust if needed
 import Colors from "../constant/color";
 
-const API_BASE = "http://localhost:5000"; // ← change to real backend URL
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';
 
 export default function Profile() {
   const [user, setUser] = useState(null);

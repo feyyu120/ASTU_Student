@@ -16,7 +16,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import Colors from './constant/color';
 import { router } from 'expo-router';
 
-const API_BASE = 'http://localhost:5000'; // ← CHANGE TO YOUR COMPUTER'S REAL IP WHEN TESTING ON PHONE
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';
 
 export default function SendDetails() {
   const [details, setDetails] = useState('');
@@ -173,6 +173,7 @@ export default function SendDetails() {
                 backgroundColor: 'white',
                 marginBottom: 24,
                 borderRadius: 12,
+                padding:10
               }}
               outlineStyle={{ borderRadius: 12 }}
               error={!details.trim() && sending}
@@ -193,7 +194,7 @@ export default function SendDetails() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                padding: 16,
+                padding: 30,
                 backgroundColor: '#f0f8ff',
                 borderRadius: 12,
                 marginBottom: 16,

@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TypeAnimation } from "react-native-type-animation";
 import COLORS from "../constant/color";
 
-const API_URL = "http://localhost:5000"; 
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';
 
 export default function Register() {
   const [name, setName] = useState("");

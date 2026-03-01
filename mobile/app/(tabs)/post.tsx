@@ -19,7 +19,7 @@ import { router } from "expo-router";
 import styles from "../styles/home.style"; // your existing styles
 import Colors from "../constant/color"; // your colors file
 
-const API_URL = "http://localhost:5000"; 
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';
 
 export default function Post() {
   const [type, setType] = useState<"lost" | "found">("lost");

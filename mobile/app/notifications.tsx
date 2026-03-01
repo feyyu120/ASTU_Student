@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
+  Alert
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from 'react-native-paper';
@@ -16,7 +17,7 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Colors from './constant/color';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE =process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
