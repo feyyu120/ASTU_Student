@@ -68,7 +68,7 @@ When a user submits a claim, admin can:
 
     Approve or Reject the claim
 
-The admin dashboard at the momnent eveything is running on localhost
+The admin dashboard
 <img width="1854" height="863" alt="Screenshot 2026-02-27 175157" src="https://github.com/user-attachments/assets/7f82745e-ae88-4c6c-9f19-b67a1cd7e464" />
 
 <img width="1895" height="629" alt="Screenshot 2026-02-27 175232" src="https://github.com/user-attachments/assets/fa06ed44-8a41-4d0b-afa4-28c4de6ed38d" />
