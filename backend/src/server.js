@@ -10,11 +10,16 @@ import adminRouter from "./routes/admin.js";
 import notificationRouter from "./routes/notifications.js";
 import claimsDetail from "./routes/claimDetails.js";
 import profileRouter from "./routes/users.js";
+import dns from 'node:dns';
+import job from "./data/cron.js";
+
+dns.setServers(['1.1.1.1', '1.0.0.1', '8.8.8.8', '8.8.4.4']);
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));  // Serve images
+job.start()
+app.use('/uploads', express.static('uploads'));  
 Db();
 
 app.use("/api/auth", authRouter);

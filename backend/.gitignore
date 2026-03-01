@@ -1,6 +1,5 @@
 .env
 node_modules
-.firebase
 dist
 coverage
 *.log

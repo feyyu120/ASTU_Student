@@ -136,10 +136,12 @@ claimsRouter.put("/:claimId", Protect(['admin']), async (req, res) => {
     if (claimant?.deviceToken) {
       await sendNotification(
         claimant.deviceToken,
-        `Claim ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-        `Your claim for "${item?.description || 'the item'}" was ${status} by admin.`,
+       `Claim ${status === 'approved' ? 'Approved' : 'Rejected'}`,
+  status === 'approved'
+    ? `Your claim for "${item?.description || 'the item'}" was approved! You can collect it at B-302 in front of special dorm.`
+    : `Your claim for "${item?.description || 'the item'}" was rejected by admin.`,
         claimant._id,
-        status === 'approved' ? 'claim_approved you can collect it at B-302 in front of special dorm' : 'claim_rejected',
+        status === 'approved' ? 'claim_approved!' : 'claim_rejected',
         claim.itemId
       );
       console.log(`Decision push sent to claimant ${claim.claimantId} – ${status}`);
