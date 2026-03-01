@@ -8,21 +8,22 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
 import { TextInput, Button } from 'react-native-paper';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Colors from './constant/color';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 
-const API_BASE = 'http://localhost:5000'; // ← CHANGE TO YOUR COMPUTER'S REAL IP
+const API_BASE = 'http://localhost:5000'; // ← CHANGE TO YOUR COMPUTER'S REAL IP WHEN TESTING ON PHONE
 
 export default function SendDetails() {
   const [details, setDetails] = useState('');
   const [image, setImage] = useState(null);
   const [sending, setSending] = useState(false);
-const router = useRouter()
+  const insets = useSafeAreaInsets();
+
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -82,9 +83,9 @@ const router = useRouter()
       }
 
       Alert.alert('Success', 'Your details and ID photo have been sent to admin!');
-      router.back(); 
-      setImage(null)
-      setDetails("")
+      router.back();
+      setImage(null);
+      setDetails('');
     } catch (err) {
       console.error('Submit error:', err);
       Alert.alert('Error', err.message || 'Failed to send. Check connection and try again.');
@@ -93,11 +94,53 @@ const router = useRouter()
     }
   };
 
+  const goBack = () => router.back();
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
-        
-        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+        {/* Top Header with Back Arrow */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingTop: insets.top + 8,
+            paddingHorizontal: 16,
+            paddingBottom: 12,
+            backgroundColor: '#ffffff',
+            borderBottomWidth: 1,
+            borderBottomColor: '#e5e7eb',
+          }}
+        >
+          <TouchableOpacity onPress={goBack} style={{ padding: 8 }}>
+            <Ionicons
+              name={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'}
+              size={28}
+              color="#111827"
+            />
+          </TouchableOpacity>
+
+          <Text
+            style={{
+              flex: 1,
+              fontSize: 20,
+              fontWeight: '700',
+              color: '#111827',
+              textAlign: 'center',
+              marginRight: 40, // balance for back button
+            }}
+          >
+            Send Details
+          </Text>
+        </View>
+
+        {/* Scrollable Content */}
+        <ScrollView
+          style={{ flex: 1 }}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: insets.bottom + 40 }} 
+          keyboardDismissMode='on-drag'
+        >
           <View style={{ padding: 20 }}>
             {/* Instruction Text */}
             <Text style={{
@@ -132,7 +175,7 @@ const router = useRouter()
                 borderRadius: 12,
               }}
               outlineStyle={{ borderRadius: 12 }}
-              error={!details.trim() && sending} // Optional red border when empty on submit attempt
+              error={!details.trim() && sending}
             />
 
             {/* Photo Upload */}

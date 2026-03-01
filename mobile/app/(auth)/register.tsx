@@ -124,7 +124,7 @@ export default function Register() {
 
             <View style={styles.form}>
               <TypeAnimation
-                sequence={[{ text: "Join ASTU_STEM", typeSpeed: 80 }]}
+                sequence={[{ text: "Access your Item", typeSpeed: 80 }]}
                 cursor={false}
                 style={{
                   fontSize: 20,
@@ -144,6 +144,7 @@ export default function Register() {
                 autoCapitalize="words"
                 left={<TextInput.Icon icon="account" />}
                 outlineStyle={{ borderRadius: 12 }}
+                theme={{ colors: { primary: COLORS.secondary } }}
               />
 
               <TextInput
@@ -157,6 +158,7 @@ export default function Register() {
                 autoCorrect={false}
                 left={<TextInput.Icon icon="email" />}
                 outlineStyle={{ borderRadius: 12 }}
+                theme={{ colors: { primary: COLORS.secondary } }}
               />
 
               <TextInput
@@ -174,6 +176,7 @@ export default function Register() {
                   />
                 }
                 outlineStyle={{ borderRadius: 12 }}
+                theme={{ colors: { primary: COLORS.secondary } }}
               />
 
               <Button

@@ -12,15 +12,17 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Snackbar } from "react-native-paper";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Colors from "./constant/color"; // ← your color file
+import { router } from "expo-router";
 
 export default function Support() {
   const [message, setMessage] = useState("");
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+  const insets = useSafeAreaInsets();
 
   // Replace these with your REAL contact links
   const contacts = {
@@ -55,6 +57,8 @@ export default function Support() {
     setMessage(""); // clear input
   };
 
+  const goBack = () => router.back();
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9fa" }}>
@@ -62,6 +66,41 @@ export default function Support() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
         >
+          {/* Custom Header with Back Arrow */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingTop: insets.top + 8,
+              paddingHorizontal: 16,
+              paddingBottom: 12,
+              backgroundColor: "#ffffff",
+              borderBottomWidth: 1,
+              borderBottomColor: "#e5e7eb",
+            }}
+          >
+            <TouchableOpacity onPress={goBack} style={{ padding: 8 }}>
+              <Ionicons
+                name={Platform.OS === "ios" ? "chevron-back" : "arrow-back"}
+                size={28}
+                color="#111827"
+              />
+            </TouchableOpacity>
+
+            <Text
+              style={{
+                flex: 1,
+                fontSize: 20,
+                fontWeight: "700",
+                color: "#111827",
+                textAlign: "center",
+                marginRight: 40, // balance for back button
+              }}
+            >
+              Support
+            </Text>
+          </View>
+
           <ScrollView
             contentContainerStyle={{
               paddingHorizontal: 24,

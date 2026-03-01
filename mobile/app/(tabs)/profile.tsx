@@ -98,13 +98,13 @@ export default function Profile() {
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     allowsEditing: true,
     aspect: [1, 1],
-    quality: 0.7,
+    quality: 0.5,
   });
 
   if (result.canceled) return;
 
   const uri = result.assets[0].uri;
-  setProfileImage(uri); // optimistic UI update
+  setProfileImage(uri); 
 
   try {
     const token = await SecureStore.getItemAsync("authToken");
@@ -143,8 +143,6 @@ export default function Profile() {
   } catch (err) {
     console.error("Profile pic upload failed:", err);
     setErrorMessage(err.message || "Could not update profile picture");
-    // Optional: revert preview
-    // setProfileImage(null);
   }
 };
 

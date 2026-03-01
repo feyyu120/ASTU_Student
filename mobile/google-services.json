@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "457177526031",
+    "project_id": "astuidlost",
+    "storage_bucket": "astuidlost.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:457177526031:android:b0c7a0659d30a9d362d87a",
+        "android_client_info": {
+          "package_name": "com.feyyu.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARp2M9ttxwY164IngYkCsxF4pjbsQZ2Xs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

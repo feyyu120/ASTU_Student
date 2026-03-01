@@ -8,16 +8,18 @@ import {
   SafeAreaView,
   ActivityIndicator,
   RefreshControl,
+   AppState
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Button, TextInput, Snackbar } from "react-native-paper";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import * as Notifications from "expo-notifications"; // ← ONLY this import is needed
 import styles from "../styles/home.style";
 import Colors from "../constant/color";
 
-const API_BASE = "http://localhost:5000"; // ← CHANGE TO YOUR COMPUTER'S REAL IP
+const API_BASE = "http://localhost:5000";
 
 export default function Home() {
   const [items, setItems] = useState([]);
@@ -29,10 +31,32 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+
+useEffect(() => {
+  const subscription = AppState.addEventListener('change', nextAppState => {
+    if (nextAppState === 'active') {
+      registerForPushNotificationsAsync(); // re-register token on foreground
+    }
+  });
+
+  return () => subscription.remove();
+}, []);
+
+
+
+
+
   useEffect(() => {
     checkAuth();
     fetchItems();
     fetchUnreadCount();
+
+    // Listen for incoming push notifications → refresh unread count & badge
+    const subscription = Notifications.addNotificationReceivedListener(() => {
+      fetchUnreadCount(); // auto-update badge when new push arrives
+    });
+
+    return () => subscription.remove();
   }, []);
 
   const checkAuth = async () => {
@@ -82,7 +106,11 @@ export default function Home() {
 
       if (res.ok) {
         const data = await res.json();
-        setUnreadCount(data.unreadCount || 0);
+        const count = data.unreadCount || 0;
+        setUnreadCount(count);
+
+        // Update app icon badge (number on app icon)
+        await Notifications.setBadgeCountAsync(count);
       }
     } catch (err) {
       console.log("Unread count fetch failed:", err);
@@ -123,13 +151,12 @@ export default function Home() {
         throw new Error(errorData.message || "Claim failed");
       }
 
-      // Immediately update badge (optimistic update)
-      setUnreadCount(prev => prev + 1);
+      // Optimistic badge update (admin will get notification)
+      setUnreadCount((prev) => prev + 1);
 
       // Refresh items list
       fetchItems(searchQuery);
 
-      // Show message telling user to go to notifications
       setErrorMessage(
         "Claim submitted! Please go to notifications (bell icon) to provide your details and attach your ID photo."
       );
@@ -142,10 +169,10 @@ export default function Home() {
     <View style={styles.card}>
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: "row",
+          alignItems: "center",
           padding: 12,
-          backgroundColor: '#f9f9f9',
+          backgroundColor: "#f9f9f9",
           borderTopLeftRadius: 12,
           borderTopRightRadius: 12,
         }}
@@ -162,8 +189,8 @@ export default function Home() {
               height: 40,
               borderRadius: 20,
               backgroundColor: Colors.secondary,
-              justifyContent: 'center',
-              alignItems: 'center',
+              justifyContent: "center",
+              alignItems: "center",
               marginRight: 12,
             }}
           >
@@ -172,11 +199,11 @@ export default function Home() {
         )}
 
         <View>
-          <Text style={{ fontWeight: 'bold', fontSize: 16 }}>
-            {item.ownerId?.name || 'Unknown User'}
+          <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+            {item.ownerId?.name || "Unknown User"}
           </Text>
-          <Text style={{ color: '#666', fontSize: 12 }}>
-            Posted {item.date ? new Date(item.date).toLocaleDateString() : 'recently'}
+          <Text style={{ color: "#666", fontSize: 12 }}>
+            Posted {item.date ? new Date(item.date).toLocaleDateString() : "recently"}
           </Text>
         </View>
       </View>
@@ -228,7 +255,7 @@ export default function Home() {
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Lost Materials</Text>
+          <Text style={styles.title}>Items</Text>
 
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <TouchableOpacity onPress={() => setShowSearch(!showSearch)}>
@@ -263,7 +290,7 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Search */}
+        {/* Search Bar */}
         {showSearch && (
           <View style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "#fff" }}>
             <TextInput
@@ -327,12 +354,17 @@ export default function Home() {
           />
         )}
       </SafeAreaView>
+
+      {/* Snackbar for claim feedback */}
       <Snackbar
         visible={!!errorMessage}
         onDismiss={() => setErrorMessage("")}
-        duration={6000} 
-        action={{ label: "Go to Notifications", onPress: () => router.push("/notifications") }}
-        style={{ backgroundColor: errorMessage.includes("success") ? Colors.success : Colors.error }}
+        duration={6000}
+        action={{
+          label: "Go to Notifications",
+          onPress: () => router.push("/notifications"),
+        }}
+        style={{ backgroundColor: Colors.success || "#10b981" }}
       >
         {errorMessage}
       </Snackbar>
