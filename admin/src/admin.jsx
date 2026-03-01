@@ -41,7 +41,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5000'; 
+const API_BASE = 'https://astu-student-api-1f9k.onrender.com';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();

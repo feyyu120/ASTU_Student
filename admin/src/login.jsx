@@ -17,7 +17,7 @@ import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
 import axios from 'axios';
 import { TypeAnimation } from 'react-type-animation';
 
-const API_BASE = 'http://localhost:5000'; 
+const API_BASE = 'https://astu-student-api-1f9k.onrender.com';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
