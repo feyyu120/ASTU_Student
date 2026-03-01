@@ -48,7 +48,7 @@ claimsRouter.post("/:itemId", Protect(['student']), async (req, res) => {
       await sendNotification(
         claimant.deviceToken,
         "Claim Submitted – Action Required",
-        "Your claim has been submitted. Please check notifications to provide your details and attach your ID photo.",
+        "Your claim has been submitted. Please check notifications to provide your details and ID photo.",
         claimant._id,
         'claim_submitted',
         itemId
@@ -142,7 +142,7 @@ claimsRouter.put("/:claimId", Protect(['admin']), async (req, res) => {
         `Claim ${status.charAt(0).toUpperCase() + status.slice(1)}`,
         `Your claim for "${item?.description || 'the item'}" was ${status} by admin.`,
         claimant._id,
-        status === 'approved' ? 'claim_approved' : 'claim_rejected',
+        status === 'approved' ? 'claim_approved you can collect it at B-302 in front of special dorm' : 'claim_rejected',
         claim.itemId
       );
       console.log(`Decision push sent to claimant ${claim.claimantId} – ${status}`);
