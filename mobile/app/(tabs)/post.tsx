@@ -71,7 +71,7 @@ export default function Post() {
     try {
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
-        router.push("/login");
+        router.push("/(auth)/login");
         return;
       }
 
@@ -223,10 +223,10 @@ export default function Post() {
           <NativeTextInput
             value={category}
             onChangeText={setCategory}
-            placeholder="ID,charger...."
+            placeholder="ID...."
             placeholderTextColor={Colors.textTertiary}
             style={{
-              borderWidth: 1,
+              borderWidth:0.3,
               borderColor: Colors.border,
               borderRadius: 12,
               padding: 14,
@@ -246,7 +246,7 @@ export default function Post() {
             placeholder="centeral library..."
             placeholderTextColor={Colors.textTertiary}
             style={{
-              borderWidth: 1,
+              borderWidth: 0.3,
               borderColor: Colors.border,
               borderRadius: 12,
               padding: 14,
@@ -259,9 +259,9 @@ export default function Post() {
           <TouchableOpacity
             onPress={pickImage}
             style={{
-              borderWidth: 2,
+              borderWidth: 0.3,
               borderColor: Colors.border,
-              borderStyle: "dashed",
+              borderStyle: "solid",
               borderRadius: 12,
               padding: 20,
               alignItems: "center",
@@ -277,7 +277,7 @@ export default function Post() {
               />
             ) : (
               <>
-                <Ionicons name="image-outline" size={60} color={Colors.textTertiary} />
+                <Ionicons name="image-outline" size={30} color={Colors.textTertiary} />
                 <Text style={{ color: Colors.textTertiary, marginTop: 12, fontSize: 16, fontWeight: "500" }}>
                   Tap to upload image
                 </Text>
@@ -296,7 +296,7 @@ export default function Post() {
             multiline
             numberOfLines={3}
             style={{
-              borderWidth: 1,
+              borderWidth:0.3,
               borderColor: Colors.border,
               borderRadius: 12,
               padding: 14,

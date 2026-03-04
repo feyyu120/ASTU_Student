@@ -11,12 +11,13 @@ import {
 } from "react-native";
 import { Button, TextInput, Snackbar } from "react-native-paper";
 import * as SecureStore from "expo-secure-store";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { TypeAnimation } from "react-native-type-animation";
 import Colors from "../constant/color"; 
+import styles from "../styles/login.style";
 
 const { height } = Dimensions.get("window");
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';;
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';
 
 export default function Login() {
 
@@ -63,7 +64,19 @@ export default function Login() {
       await SecureStore.setItemAsync("user", JSON.stringify(data.user));
 
       setSuccessMessage("Welcome back!");
-      setTimeout(() => router.replace("/(tabs)/home"), 200);
+     const user = data.user;
+
+      if (user?.role === 'admin') {
+        // Admin goes to admin dashboard
+        setTimeout(() => {
+          router.replace("/(admin)/admin");
+        }, 200);
+      } else {
+        // Normal users / students go to tabs home
+        setTimeout(() => {
+          router.replace("/(tabs)/home");
+        }, 200);
+      }
 
       setEmail("");
       setPassword("");
@@ -75,6 +88,7 @@ export default function Login() {
   };
 
   return (
+    <SafeAreaProvider > 
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -84,14 +98,12 @@ export default function Login() {
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
-            paddingHorizontal: 28,
-            paddingTop: insets.top + 20,
-            paddingBottom: insets.bottom + 40,
+            justifyContent: "center",
+            paddingHorizontal: 20,
           }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          keyboardDismissMode="on-drag"
+          keyboardDismissMode="interactive"
         >
+        
           <View
             style={{
               flex: 1,
@@ -103,18 +115,7 @@ export default function Login() {
            
 
             {/* Form Card */}
-            <View
-              style={{
-                backgroundColor: "#FFF",
-                borderRadius: 24,
-                padding: 28,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.08,
-                shadowRadius: 20,
-                elevation: 8,
-              }}
-            >
+            <View style={styles.form}>
                <TypeAnimation
               sequence={[{ text: "Welcome Back!", typeSpeed: 70 }]}
               cursor={false}
@@ -135,8 +136,8 @@ export default function Login() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                left={<TextInput.Icon icon="email-outline" />}
-                outlineStyle={{ borderRadius: 16 }}
+                left={<TextInput.Icon icon="email-outline" color={Colors.icons}/>}
+                outlineStyle={{ borderRadius: 16,borderWidth:0.3 }}
                 style={{ marginBottom: 20,backgroundColor:"transparent" }}
                 theme={{ colors: { primary: Colors.secondary } }}
               />
@@ -147,14 +148,14 @@ export default function Login() {
                 onChangeText={setPassword}
                 mode="outlined"
                 secureTextEntry={!isPasswordVisible}
-                left={<TextInput.Icon icon="lock-outline" />}
+                left={<TextInput.Icon icon="lock-outline"  color={Colors.icons}/>}
                 right={
-                  <TextInput.Icon
+                  <TextInput.Icon  color={Colors.icons}
                     icon={isPasswordVisible ? "eye-off-outline" : "eye-outline"}
                     onPress={() => setIsPasswordVisible(!isPasswordVisible)}
                   />
                 }
-                outlineStyle={{ borderRadius: 16 }}
+                outlineStyle={{ borderRadius: 16 ,borderWidth:0.3}}
                 style={{ marginBottom: 12 ,backgroundColor:"transparent"}}
                 theme={{ colors: { primary: Colors.secondary } }}
               />
@@ -193,7 +194,8 @@ export default function Login() {
               style={{
                 flexDirection: "row",
                 justifyContent: "center",
-                marginTop: 32,
+                marginTop: 10,
+                marginBottom:27
               }}
             >
               <Text style={{ color: "#6b7280", fontSize: 15 }}>
@@ -214,6 +216,18 @@ export default function Login() {
               </Link>
             </View>
           </View>
+          <View style={{
+  padding: 16,
+  alignItems: 'center',
+  backgroundColor: '#fff'
+}}><> 
+  <Text style={{ fontSize: 13, color: '#777', textAlign: 'center' }}>
+    © {new Date().getFullYear()} Item lost App • All Rights Reserved
+  </Text>
+  <Text style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+    Developed by Feysel
+  </Text></>
+</View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -236,6 +250,8 @@ export default function Login() {
       >
         {successMessage}
       </Snackbar>
+
     </SafeAreaView>
+    </SafeAreaProvider>
   );
 }

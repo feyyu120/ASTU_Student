@@ -15,16 +15,14 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   form: {
+   
     width: "100%",
     maxWidth: 360,
     backgroundColor: "white",
     borderRadius: 20,
     padding: 32,
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
+   borderWidth:0.2,
+   borderColor:"#b4aeae"
   },
   input: {
     marginVertical: 5,

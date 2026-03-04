@@ -15,7 +15,7 @@ import { Button } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Colors from './constant/color';
+import Colors from '../constant/color';
 
 const API_BASE =process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';
 
@@ -35,7 +35,7 @@ export default function Notifications() {
     try {
       const token = await SecureStore.getItemAsync('authToken');
       if (!token) {
-        router.replace('/login');
+        router.replace("/(auth)/login");
         return;
       }
 
@@ -143,7 +143,7 @@ export default function Notifications() {
         {needsDetails && (
           <Button
             mode="contained"
-            onPress={() => router.push('/send')}
+            onPress={() => router.push("/notify/send")}
             buttonColor={Colors.secondary || '#3b82f6'}
             textColor="white"
             style={{ marginTop: 16, borderRadius: 12 }}
@@ -159,7 +159,7 @@ export default function Notifications() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#dfe4e9d0' }}>
         {/* Custom Header with Back Arrow */}
         <View
           style={{

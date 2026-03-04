@@ -13,7 +13,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
 import { TextInput, Button } from 'react-native-paper';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Colors from './constant/color';
+import Colors from '../constant/color';
 import { router } from 'expo-router';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';

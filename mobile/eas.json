@@ -1,21 +1,21 @@
 {
   "cli": {
-    "version": ">= 18.0.6",
-    "appVersionSource": "remote"
+    "version": ">= 12.0.0",  // Updated to a safe modern minimum (Expo auto-handles newer; this prevents very old CLI issues)
+    "appVersionSource": "remote"  // Good default for remote version management
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal",
+      "distribution": "internal"  // Ensures installable builds for testing
     },
-    "preview": {
-      "distribution": "internal"
-    },
-    "production": {
-      "autoIncrement": true
-    }
+   "production": {
+  "autoIncrement": true,
+  "android": {
+    "buildType": "apk"
+  }
+}
   },
   "submit": {
-    "production": {}
+    "production": {}  // For eas submit --profile production (uploads AAB to Play Store)
   }
 }

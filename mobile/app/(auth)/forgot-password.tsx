@@ -1,4 +1,4 @@
-// forgot-password.tsx
+
 import React, { useState } from "react";
 import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { TextInput, Button, Snackbar } from "react-native-paper";
@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import COLORS from "../constant/color";
 
-const API_URL = "http://localhost:5000";
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");

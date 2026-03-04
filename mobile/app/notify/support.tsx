@@ -15,7 +15,8 @@ import {
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Snackbar } from "react-native-paper";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import Colors from "./constant/color"; // ← your color file
+import EvilIcons from '@expo/vector-icons/EvilIcons';
+import Colors from "../constant/color"; // ← your color file
 import { router } from "expo-router";
 
 export default function Support() {
@@ -50,7 +51,6 @@ export default function Support() {
       return;
     }
 
-    // For now — just show success (you can later send to backend or email)
     setSnackbarMessage("Thank you! Your message has been noted. We'll get back to you soon.");
     setSnackbarVisible(true);
     setMessage(""); // clear input
@@ -64,6 +64,7 @@ export default function Support() {
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
+          
         >
           {/* Custom Header with Back Arrow */}
           <View
@@ -159,7 +160,7 @@ export default function Support() {
                 style={contactButtonStyle}
                 onPress={() => openLink(contacts.telegram, "Telegram")}
               >
-                <Ionicons name="logo-telegram" size={28} color="#0088cc" />
+                <EvilIcons name="sc-telegram" size={28} color="#0088cc" />
                 <Text style={contactText}>Telegram Support</Text>
                 <Ionicons name="open-outline" size={20} color="#888" />
               </TouchableOpacity>

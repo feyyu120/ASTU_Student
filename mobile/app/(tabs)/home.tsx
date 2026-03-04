@@ -8,18 +8,18 @@ import {
   SafeAreaView,
   ActivityIndicator,
   RefreshControl,
-   AppState
+  AppState,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Button, TextInput, Snackbar } from "react-native-paper";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import * as Notifications from "expo-notifications"; // ← ONLY this import is needed
+import * as Notifications from "expo-notifications";
 import styles from "../styles/home.style";
 import Colors from "../constant/color";
 
-const API_BASE =process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://astu-student-api-1f9k.onrender.com';
 
 export default function Home() {
   const [items, setItems] = useState([]);
@@ -31,32 +31,47 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-
-useEffect(() => {
-  const subscription = AppState.addEventListener('change', nextAppState => {
-    if (nextAppState === 'active') {
-     
-    }
-  });
-
-  return () => subscription.remove();
-}, []);
-
-
-
-
-
+  // ────────────────────────────────────────────────
+  // Notification & App State Handling
+  // ────────────────────────────────────────────────
   useEffect(() => {
+    // Load initial data
     checkAuth();
     fetchItems();
     fetchUnreadCount();
 
-    // Listen for incoming push notifications → refresh unread count & badge
-    const subscription = Notifications.addNotificationReceivedListener(() => {
-      fetchUnreadCount(); // auto-update badge when new push arrives
+    // 1. Foreground: notification arrives while app is open
+    const receivedListener = Notifications.addNotificationReceivedListener((notification) => {
+      console.log("[NOTIF RECEIVED - FOREGROUND]", notification.request.content);
+      fetchUnreadCount(); // refresh count + badge
     });
 
-    return () => subscription.remove();
+    // 2. User taps on notification (foreground or background)
+    const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
+      console.log("[NOTIF TAPPED]", response.notification.request.content);
+      fetchUnreadCount();
+
+      // Optional: navigate to notifications screen when tapped
+      const data = response.notification.request.content.data;
+      if (data?.type === 'claim_update') {
+        router.push("/notify/notifications");
+      }
+    });
+
+    // 3. When app comes back to foreground (from background or killed)
+    const appStateSub = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        console.log("[APP BECAME ACTIVE] → refreshing notifications");
+        fetchUnreadCount();
+        fetchItems(); // optional: refresh items too if you want
+      }
+    });
+
+    return () => {
+      receivedListener.remove();
+      responseListener.remove();
+      appStateSub.remove();
+    };
   }, []);
 
   const checkAuth = async () => {
@@ -109,8 +124,9 @@ useEffect(() => {
         const count = data.unreadCount || 0;
         setUnreadCount(count);
 
-        // Update app icon badge (number on app icon)
+        // Update app icon badge
         await Notifications.setBadgeCountAsync(count);
+        console.log(`Badge updated → ${count} unread`);
       }
     } catch (err) {
       console.log("Unread count fetch failed:", err);
@@ -132,7 +148,7 @@ useEffect(() => {
 
   const handleClaim = async (itemId) => {
     if (!isLoggedIn) {
-      router.push("/login");
+      router.push("/(auth)/login");
       return;
     }
 
@@ -154,12 +170,10 @@ useEffect(() => {
       // Optimistic badge update (admin will get notification)
       setUnreadCount((prev) => prev + 1);
 
-      // Refresh items list
+      // Refresh items
       fetchItems(searchQuery);
 
-      setErrorMessage(
-        "Claim submitted! Please go to notifications (bell icon) to provide your details and attach your ID photo."
-      );
+      setErrorMessage("Claim submitted! Check notifications for updates.");
     } catch (error) {
       setErrorMessage(error.message || "Could not claim item");
     }
@@ -258,12 +272,19 @@ useEffect(() => {
           <Text style={styles.title}>Items</Text>
 
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <TouchableOpacity onPress={() => setShowSearch(!showSearch)}>
-              <Ionicons name="search" size={24} color="#535050" style={{ marginRight: 20 }} />
+            {/* Refresh Icon - added on the left of search */}
+            <TouchableOpacity onPress={onRefresh} style={{ marginRight: 20 }}>
+              <Ionicons name="refresh" size={26} color="#535050" />
             </TouchableOpacity>
 
+            {/* Search Icon */}
+            <TouchableOpacity onPress={() => setShowSearch(!showSearch)} style={{ marginRight: 20 }}>
+              <Ionicons name="search" size={24} color="#535050" />
+            </TouchableOpacity>
+
+            {/* Notifications Icon */}
             <TouchableOpacity
-              onPress={() => router.push("/notifications")}
+              onPress={() => router.push("/notify/notifications")}
               style={{ position: "relative" }}
             >
               <Ionicons name="notifications-outline" size={24} color="#535050" />
@@ -295,7 +316,7 @@ useEffect(() => {
           <View style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "#fff" }}>
             <TextInput
               mode="outlined"
-              placeholder="Search by category or location..."
+              placeholder="Search what you lost..."
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={handleSearch}
@@ -362,7 +383,7 @@ useEffect(() => {
         duration={6000}
         action={{
           label: "Go to Notifications",
-          onPress: () => router.push("/notifications"),
+          onPress: () => router.push("/notify/notifications"),
         }}
         style={{ backgroundColor: Colors.success || "#10b981" }}
       >

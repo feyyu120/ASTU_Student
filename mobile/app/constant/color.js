@@ -28,6 +28,7 @@ const COLORS = {
   // Borders / dividers
   border: "#e0e0e0",            // Light gray borders
   divider: "#eeeeee",
+  icons:"#777",
 
   // Disabled / inactive
   disabled: "#cccccc",

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   Text,
@@ -12,7 +13,7 @@ import {
 import { Button, TextInput, Snackbar } from "react-native-paper";
 import * as SecureStore from "expo-secure-store";
 import styles from "../styles/login.style";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets,SafeAreaProvider,SafeAreaView } from "react-native-safe-area-context";
 import { TypeAnimation } from "react-native-type-animation";
 import COLORS from "../constant/color";
 
@@ -107,6 +108,8 @@ export default function Register() {
 
   return (
     <>
+    <SafeAreaProvider> 
+      <SafeAreaView style={{flex:1}}> 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1, paddingBottom: insets.bottom }}
@@ -142,8 +145,8 @@ export default function Register() {
                 onChangeText={setName}
                 mode="outlined"
                 autoCapitalize="words"
-                left={<TextInput.Icon icon="account" />}
-                outlineStyle={{ borderRadius: 12 }}
+                left={<TextInput.Icon icon="account" color={COLORS.icons} />}
+                outlineStyle={{ borderRadius: 12,borderWidth:0.3 }}
                 theme={{ colors: { primary: COLORS.secondary } }}
               />
 
@@ -156,8 +159,8 @@ export default function Register() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                left={<TextInput.Icon icon="email" />}
-                outlineStyle={{ borderRadius: 12 }}
+                left={<TextInput.Icon icon="email" color={COLORS.icons} />}
+                outlineStyle={{ borderRadius: 12 ,borderWidth:0.3}}
                 theme={{ colors: { primary: COLORS.secondary } }}
               />
 
@@ -168,14 +171,14 @@ export default function Register() {
                 onChangeText={setPassword}
                 mode="outlined"
                 secureTextEntry={!isPasswordVisible}
-                left={<TextInput.Icon icon="lock" />}
+                left={<TextInput.Icon icon="lock" color={COLORS.icons} />}
                 right={
-                  <TextInput.Icon
+                  <TextInput.Icon color={COLORS.icons}
                     icon={isPasswordVisible ? "eye-off" : "eye"}
                     onPress={() => setIsPasswordVisible(!isPasswordVisible)}
                   />
                 }
-                outlineStyle={{ borderRadius: 12 }}
+                outlineStyle={{ borderRadius: 12,borderWidth:0.3 }}
                 theme={{ colors: { primary: COLORS.secondary } }}
               />
 
@@ -192,7 +195,9 @@ export default function Register() {
                 {isLoading ? "Creating Account..." : "Register"}
               </Button>
 
-              <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 10 }}>
+             
+            </View>
+             <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 10 }}>
                 <Text style={{ color: "#666", fontSize: 15 }}>
                   Already have an account?{" "}
                 </Text>
@@ -204,11 +209,26 @@ export default function Register() {
                   </TouchableOpacity>
                 </Link>
               </View>
-            </View>
           </View>
+             <TouchableOpacity style={{alignSelf:"center"}} onPress={() =>{
+              Linking.openURL("https://feyyu120.github.io/Terms-and-conditions/")
+             }}><Text style={{color:COLORS.link}}>Terms and Conditions</Text></TouchableOpacity>
+      <View style={{
+        padding: 16,
+        alignItems: 'center',
+        backgroundColor: '#fff',
+      }}>
+        <Text style={{ fontSize: 13, color: '#777', textAlign: 'center' }}>
+          © {new Date().getFullYear()} Item lost App • All Rights Reserved
+        </Text>
+        <Text style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+          Developed by Feysel
+        </Text>
+      </View>
         </ScrollView>
+      
       </KeyboardAvoidingView>
-
+       
       {/* Error Snackbar */}
       <Snackbar
         visible={!!errorMessage}
@@ -232,6 +252,9 @@ export default function Register() {
       >
         {successMessage}
       </Snackbar>
+      
+      </SafeAreaView>
+      </SafeAreaProvider>
     </>
   );
 }

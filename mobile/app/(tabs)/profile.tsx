@@ -87,70 +87,70 @@ export default function Profile() {
     }
   };
 
- const pickProfileImage = async () => {
-  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== "granted") {
-    setErrorMessage("Gallery permission required");
-    return;
-  }
-
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-    aspect: [1, 1],
-    quality: 0.5,
-  });
-
-  if (result.canceled) return;
-
-  const uri = result.assets[0].uri;
-  setProfileImage(uri); 
-
-  try {
-    const token = await SecureStore.getItemAsync("authToken");
-    if (!token) throw new Error("Not authenticated");
-
-    const formData = new FormData();
-    const filename = uri.split("/").pop() || `avatar-${Date.now()}.jpg`;
-
-    formData.append("avatar", {
-      uri,
-      name: filename,
-      type: "image/jpeg",
-    });
-
-    const response = await fetch(`${API_BASE}/api/users/profile-picture`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => "");
-      throw new Error(`Server error ${response.status}: ${errText}`);
+  const pickProfileImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      setErrorMessage("Gallery permission required");
+      return;
     }
 
-    const data = await response.json();
-    console.log("Profile updated:", data);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
 
-    // Update local user state + storage
-    setUser(data.user);
-    await SecureStore.setItemAsync("user", JSON.stringify(data.user));
+    if (result.canceled) return;
 
-    setSuccessMessage("Profile picture updated");
-  } catch (err) {
-    console.error("Profile pic upload failed:", err);
-    setErrorMessage(err.message || "Could not update profile picture");
-  }
-};
+    const uri = result.assets[0].uri;
+    setProfileImage(uri); 
+
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      if (!token) throw new Error("Not authenticated");
+
+      const formData = new FormData();
+      const filename = uri.split("/").pop() || `avatar-${Date.now()}.jpg`;
+
+      formData.append("avatar", {
+        uri,
+        name: filename,
+        type: "image/jpeg",
+      });
+
+      const response = await fetch(`${API_BASE}/api/users/profile-picture`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errText = await response.text().catch(() => "");
+        throw new Error(`Server error ${response.status}: ${errText}`);
+      }
+
+      const data = await response.json();
+      console.log("Profile updated:", data);
+
+      // Update local user state + storage
+      setUser(data.user);
+      await SecureStore.setItemAsync("user", JSON.stringify(data.user));
+
+      setSuccessMessage("Profile picture updated");
+    } catch (err) {
+      console.error("Profile pic upload failed:", err);
+      setErrorMessage(err.message || "Could not update profile picture");
+    }
+  };
 
   const handleLogout = async () => {
     await SecureStore.deleteItemAsync("authToken");
     await SecureStore.deleteItemAsync("user");
     setSuccessMessage("Logged out");
-    router.replace("/login");
+    router.replace("/(auth)/login");
   };
 
   const handleEditItem = (item) => {
@@ -306,7 +306,7 @@ export default function Profile() {
         <Text style={{ fontSize: 18, textAlign: "center", marginBottom: 32, color: "#555" }}>
           Please sign in to view your profile
         </Text>
-        <Button mode="contained" buttonColor={Colors.primary} onPress={() => router.push("/login")}>
+        <Button mode="contained" buttonColor={Colors.primary} onPress={() => router.push("/(auth)/login")}>
           Sign In
         </Button>
       </SafeAreaView>
@@ -402,7 +402,7 @@ export default function Profile() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => router.push("/support")}
+              onPress={() => router.push("/notify/support")}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -440,11 +440,32 @@ export default function Profile() {
           onRequestClose={() => setPostedHistoryVisible(false)}
         >
           <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9fa" }}>
-            <View style={{ flexDirection: "row", alignItems: "center", padding: 16, backgroundColor: "white", borderBottomWidth: 1, borderBottomColor: "#eee" }}>
+            <View style={{ 
+              flexDirection: "row", 
+              alignItems: "center", 
+              justifyContent: "space-between",
+              padding: 16, 
+              backgroundColor: "white", 
+              borderBottomWidth: 1, 
+              borderBottomColor: "#eee" 
+            }}>
               <TouchableOpacity onPress={() => setPostedHistoryVisible(false)} style={{ paddingRight: 16 }}>
                 <Ionicons name="arrow-back" size={28} color="#333" />
               </TouchableOpacity>
+              
               <Text style={{ fontSize: 20, fontWeight: "700", color: "#333" }}>Posted History</Text>
+              
+              <TouchableOpacity 
+                onPress={loadProfile}
+                disabled={isLoading}
+                style={{ paddingLeft: 16 }}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                ) : (
+                  <Ionicons name="refresh" size={28} color="#333" />
+                )}
+              </TouchableOpacity>
             </View>
 
             <FlatList
@@ -459,11 +480,12 @@ export default function Profile() {
                 </View>
               }
               contentContainerStyle={{ padding: 16 }}
+              refreshing={isLoading}
+              onRefresh={loadProfile}
             />
           </SafeAreaView>
         </Modal>
 
-      
         <Modal visible={editModalVisible} animationType="slide" transparent>
           <SafeAreaProvider>
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>

@@ -11,12 +11,15 @@
     "ios": {
       "supportsTablet": true
     },
+     "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
          "backgroundColor": "#ffffff"
       },
       
@@ -47,12 +50,6 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "cab7d1cc-37fe-4df8-ad68-c4cc35396c44"
-      }
     }
   }
 }

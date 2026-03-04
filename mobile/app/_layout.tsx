@@ -1,13 +1,17 @@
 
 import { Stack } from "expo-router";
-import { StatusBar, Platform } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StatusBar, Platform, View, Text } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Provider as PaperProvider } from "react-native-paper";
 import { useEffect } from "react";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import * as SecureStore from "expo-secure-store";
+import * as  NavigationBar from "expo-navigation-bar"
+
+
+
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -61,6 +65,7 @@ async function registerForPushNotificationsAsync() {
 }
 
 export default function RootLayout() {
+
   useEffect(() => {
     (async () => {
       const expoPushToken = await registerForPushNotificationsAsync();
@@ -101,8 +106,10 @@ export default function RootLayout() {
   }, []);
 
   return (
+    <> 
    
       <SafeAreaProvider>
+      
         <Stack
           screenOptions={{
             headerShown: false,
@@ -117,7 +124,8 @@ export default function RootLayout() {
 
           {/* Optional: other full-screen modals/screens */}
           <Stack.Screen name="notifications" options={{ presentation: "modal" }} />
-          {/* Add more if needed */}
+           <Stack.Screen name="support" options={{ presentation: "modal" }} />
+        
         </Stack>
 
         {/* Status Bar */}
@@ -127,6 +135,6 @@ export default function RootLayout() {
           translucent={Platform.OS === "android"}
         />
       </SafeAreaProvider>
-    
+    </>
   );
 }
