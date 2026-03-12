@@ -75,15 +75,24 @@ When a user submits a claim, the admin can:
 
 # 🖥 Admin Dashboard Screenshots
 
+![alt text](<Screenshot 2026-02-26 152827.png>)
+
+### pending
+
+![alt text](<Screenshot 2026-02-26 152844.png>)
+
 ### View User Details
 
----
+## ![alt text](<Screenshot 2026-02-27 175258.png>)
 
 # 📱 Mobile App
 
 Tested on a physical Android device.
+
 **signup page**
+
 ![alt text](signup.jpg)
+
 **home page**
 
 ![alt text](home.jpg)
@@ -93,9 +102,11 @@ Tested on a physical Android device.
 ![alt text](profile.jpg)
 
 **support page**
+
 ![alt text](support.jpg)
 
 **history page**
+
 ![alt text](history.jpg)
 
 # ⚙️ Tech Stack
