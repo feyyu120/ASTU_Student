@@ -22,9 +22,7 @@ if (!admin.apps.length) {
 
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      // Uncomment if you need these services:
-      // databaseURL: 'https://astuidlost.firebaseio.com',
-      // storageBucket: 'astuidlost.appspot.com',
+      
     });
 
     console.log('✅ Firebase Admin SDK initialized successfully');

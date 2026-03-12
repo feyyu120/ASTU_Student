@@ -1,99 +1,134 @@
-This platform connects people who have lost items with those who have found them.
+# 📦 Lost & Found Item Platform
+
+A platform that connects people who **lost items** with people who **found them**, making it easier to recover lost belongings securely.
+
+---
+
+# 🚀 Features
+
+## 👤 User Features
 
 Users can:
 
-    Sign up and log in securely
+- 🔐 **Sign up and log in securely**
+- 📧 **Reset password via email verification**
+- 📦 **Post lost or found items**
+- 🔍 **Search for items**
+- 📝 **Submit claims for found items**
+- 🔔 **Receive notifications when claims are approved or rejected**
+- ✏️ **Manage their own listings (edit/delete)**
 
-    If forget password their is email sent verification to reset
+---
 
-    Post lost or found items
-
-    Claim items by submitting verification details
-
-    Search what they want to claim
-
-    Receive notifications when their claim is approved or rejected
-
-    Manage their own listings (edit/delete)
+## 🛠 Admin Features
 
 Admins can:
 
-    View dashboard statistics
+- 📊 View **dashboard statistics**
+- 📝 Review **claim requests with user details and ID photos**
+- ✅ Approve claims
+- ❌ Reject claims
+- 📈 Monitor overall platform activity
 
-    Review claim requests with user details and ID photos
+---
 
-    Approve or reject claims
+# 🔔 Notifications
 
-    Monitor overall platform activity
+Users receive notifications when:
 
-🔔 Notifications
+- ✅ Admin **approves** the claim
+- ❌ Admin **rejects** the claim
 
-    User receives notification when:
+---
 
-        Admin approves the claim ✅
+# 🔐 Security & Verification
 
-        Admin rejects the claim ❌
+To prevent fraud and ensure item ownership:
 
-🔐 Security & Verification
+- 📷 **ID photo required** when submitting a claim
+- 👮 **Admin verification** before item release
+- 🔒 **Controlled approval system**
 
-    ID photo required for claiming
+---
 
-    Admin verification before item release
+# 📊 Admin Dashboard
 
-    Controlled approval system to prevent fraud
+The admin dashboard displays:
 
-📊 Admin Dashboard
+- 👥 Total Users
+- 📦 Total Items
+- ⏳ Pending Claims
+- ✅ Approved Claims
+- ❌ Rejected Claims
+- 📝 Claim Management
 
-Displays:
+### Claim Review Process
 
-    👥 Total Users
+When a user submits a claim, the admin can:
 
-    📦 Total Items
+- View item details
+- View claimant information
+- View uploaded ID photo
+- Approve or reject the claim
 
-    ⏳ Total Pending Claims
+---
 
-    ✅ Total Approved Claims
+# 🖥 Admin Dashboard Screenshots
 
-    ❌ Total Rejected Claims
+### View User Details
 
-    📝 Claim Management
+---
 
-When a user submits a claim, admin can:
+# 📱 Mobile App
 
-    View item details
+Tested on a physical Android device.
+**signup page**
+![alt text](signup.jpg)
+**home page**
 
-    View claimant’s information
+![alt text](home.jpg)
 
-    View uploaded ID photo
+**profile page**
 
-    Approve or Reject the claim
+![alt text](profile.jpg)
 
-The admin dashboard
-<img width="1854" height="863" alt="Screenshot 2026-02-27 175157" src="https://github.com/user-attachments/assets/7f82745e-ae88-4c6c-9f19-b67a1cd7e464" />
+**support page**
+![alt text](support.jpg)
 
-<img width="1895" height="629" alt="Screenshot 2026-02-27 175232" src="https://github.com/user-attachments/assets/fa06ed44-8a41-4d0b-afa4-28c4de6ed38d" />
+**history page**
+![alt text](history.jpg)
 
-when admin click view icon(users detail)
-<img width="1867" height="874" alt="Screenshot 2026-02-27 175258" src="https://github.com/user-attachments/assets/96c45771-8aef-4297-99b7-30eaec5d50bc" />
+# ⚙️ Tech Stack
 
-In mobile phone
-my physical phone
+**Frontend**
 
-![photo_2026-02-27_18-03-35](https://github.com/user-attachments/assets/0a69e92d-bfcc-432d-9dc5-e191f8b2f39e)
+- React (Admin dashboard)
+- React Native (Mobile app)
 
-📦 Tech Stack
+**Backend**
 
-    Frontend: React(for admin page) / React Native(for user mobile)
+- Node.js
+- Express.js
 
-    Backend: Node.js + Express
+**Database**
 
-    Database: MongoDB
+- MongoDB
 
-    Authentication: JWT
+**Authentication**
 
-    Image Upload: Cloudinary
+- JSON Web Token (JWT)
 
+**Image Storage**
 
+- Cloudinary
 
+---
 
-    Author:Feysel Yassin second year Software Engineering student at ASTU
+# 👨‍💻 Author
+
+**Feysel Yassin**
+Second Year Software Engineering Student
+Adama Science and Technology University (ASTU)
+
+**contact**
+feysefeyyu@gmail.com

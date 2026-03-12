@@ -31,9 +31,8 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // ────────────────────────────────────────────────
   // Notification & App State Handling
-  // ────────────────────────────────────────────────
+
   useEffect(() => {
     // Load initial data
     checkAuth();

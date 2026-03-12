@@ -1,4 +1,4 @@
-// utils/notifications.js
+
 import admin from './firebaseAdmin.js';
 import Notification from '../models/notification.js';
 import User from '../models/user.js';
@@ -12,16 +12,20 @@ const sendNotification = async (
   relatedItemId = null
 ) => {
   try {
-    // Normalize tokens to array and filter invalid/empty
+    // Normalize tokens to array and filter obviously invalid ones
     let tokens = Array.isArray(deviceTokens) ? deviceTokens : [deviceTokens];
-    tokens = tokens.filter(t => t && typeof t === 'string' && t.trim().length > 20 && t.startsWith('ExponentPushToken')); // Expo tokens usually start like this
+    tokens = tokens.filter(t => 
+      t && 
+      typeof t === 'string' && 
+      t.trim().length > 20 && 
+      t.startsWith('ExponentPushToken')
+    );
 
     if (tokens.length === 0) {
-      console.log('No valid Expo push tokens provided – skipping push');
-      // Still save DB notif if userId exists
+      console.log('No valid Expo push tokens → skipping FCM push');
     }
 
-    // 1. Save to DB (persistent in-app record) – always for user-specific
+    // 1. Always save to database (persistent record)
     let dbNotif = null;
     if (userId) {
       dbNotif = new Notification({
@@ -34,85 +38,104 @@ const sendNotification = async (
         createdAt: new Date(),
       });
       await dbNotif.save();
-      console.log(`DB notification saved for user ${userId} (ID: ${dbNotif._id})`);
-    } else {
-      console.log('Multicast (e.g. admins) – no specific DB save');
+      console.log(`DB notification saved → user: ${userId} | id: ${dbNotif._id}`);
     }
 
-    // 2. Send real push via FCM only if we have tokens
+    // 2. Send push notification only if we have valid tokens
     if (tokens.length > 0) {
       const message = {
         tokens, // multicast
+
+        // This part ensures the notification is visible even when app is killed
         notification: {
           title,
           body,
         },
+
+        // Custom data your app can read
         data: {
           type,
           itemId: relatedItemId ? relatedItemId.toString() : null,
           notificationId: dbNotif?._id?.toString() || null,
-          // Optional: for deep linking when tapped
-          click_action: 'FCM_PLUGIN_ACTIVITY', // helps some Android routing
+          click_action: 'FCM_PLUGIN_ACTIVITY', // helps some Android deep linking
         },
+
         android: {
-          priority: 'high', // already good
+          // Critical for visibility & priority on Android
+          priority: 'high',
+          collapseKey: type,                    // group similar notifications
+          ttl: 2419200,                         // 28 days - very long TTL
+
           notification: {
-            channelId: 'default', // matches your app channel
+            channelId: 'default',               // MUST match your Expo channel name
             sound: 'default',
-            // Add tag/group for collapsing duplicates if needed
-            tag: type, // e.g. group similar notifications
-            // clickAction: 'your.custom.scheme://path' if using deep links
+            tag: type,                          // collapse key for same-type notifs
+            priority: 'high',                   // extra emphasis (some devices need it)
+            defaultVibrateTimings: true,
+            defaultSound: true,
+            defaultLightSettings: true,
+            // Optional but recommended: color
+            color: '#6366f1',                   // your app's primary color (indigo)
+              // custom icon name (if you added one)
           },
         },
+
         apns: {
           payload: {
             aps: {
               sound: 'default',
-              // Optional: badge if you track it server-side
-              // badge: someBadgeCount,
+             
             },
           },
         },
-        // Optional: web push if needed later
       };
 
       try {
         const response = await admin.messaging().sendMulticast(message);
+
         console.log(
-          `FCM multicast sent to ${tokens.length} tokens. Success: ${response.successCount}, Failed: ${response.failureCount}`
+          `FCM multicast → ${tokens.length} tokens | Success: ${response.successCount} | Failed: ${response.failureCount}`
         );
 
-        // Clean up invalid/expired tokens
+        // Handle failed deliveries → clean up invalid tokens
         if (response.failureCount > 0) {
+          const failedTokens = [];
           response.responses.forEach((resp, idx) => {
             if (!resp.success) {
               const err = resp.error;
-              console.warn(`Failed for token ${tokens[idx]}: ${err?.message || 'Unknown'}`);
+              console.warn(`Token failed: ${tokens[idx]} → ${err?.message || 'Unknown error'}`);
+
               if (
                 err?.code === 'messaging/registration-token-not-registered' ||
                 err?.code === 'messaging/invalid-argument' ||
-                err?.code === 'messaging/registration-token-not-registered'
+                err?.code === 'messaging/invalid-registration-token'
               ) {
-                // Remove invalid token from user
-                User.updateOne(
-                  { deviceToken: tokens[idx] },
-                  { $unset: { deviceToken: '' } }
-                ).catch(e => console.error('Failed to unset invalid token:', e));
+                failedTokens.push(tokens[idx]);
               }
             }
           });
+
+          // Bulk remove invalid tokens
+          if (failedTokens.length > 0) {
+            await User.updateMany(
+              { deviceToken: { $in: failedTokens } },
+              { $unset: { deviceToken: '' } }
+            );
+            console.log(`Removed ${failedTokens.length} invalid/expired tokens`);
+          }
         }
       } catch (pushErr) {
-        console.error('FCM multicast error:', pushErr);
-        // Don't fail the whole function – DB save succeeded
+        console.error('FCM sendMulticast failed:', pushErr.message);
+        // Do NOT throw — we still want DB record to exist
       }
-    } else {
-      console.log('No valid tokens – only DB notification saved (if userId provided)');
     }
 
-    return { success: true, notificationId: dbNotif?._id?.toString() };
+    return {
+      success: true,
+      notificationId: dbNotif?._id?.toString() || null,
+    };
   } catch (error) {
-    console.error('Full notification send error:', error);
+    console.error('sendNotification failed:', error);
     return { success: false, error: error.message };
   }
 };

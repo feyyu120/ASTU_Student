@@ -410,9 +410,8 @@ export default function AdminDashboard() {
   );
 }
 
-// ────────────────────────────────────────────────
+
 // Stat Card Component
-// ────────────────────────────────────────────────
 function StatCard({ label, value, color, icon }: {
   label: string;
   value: number;
